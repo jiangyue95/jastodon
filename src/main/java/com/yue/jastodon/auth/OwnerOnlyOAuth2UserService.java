@@ -31,6 +31,6 @@ public class OwnerOnlyOAuth2UserService implements OAuth2UserService<OAuth2UserR
 
     private boolean isOwner(OAuth2User user) {
         Number id = user.getAttribute("id");
-        return id != null && id.longValue() == ownerProperties.githubId();
+        return id != null && id.longValue() != ownerProperties.githubId();
     }
 }
