@@ -10,6 +10,6 @@ spring:
             client-id: ${GITHUB_CLIENT_ID}
             client-secret: ${GITHUB_CLIENT_SECRET}
 
-jstodon:
+jastodon:
   owner:
     github-id: 20340265
