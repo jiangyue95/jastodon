@@ -6,3 +6,6 @@ spring:
           github:
             client-id: test-client-id
             client-secret: test-client-secret
+jastodon:
+  federation:
+    base-url: https://jastodon.test
