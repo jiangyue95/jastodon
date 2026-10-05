@@ -25,7 +25,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(
+    SecurityFilterChain browserSecurityFilterChain(
             HttpSecurity http, OwnerOnlyOAuth2UserService ownerOnlyOAuth2UserService) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
