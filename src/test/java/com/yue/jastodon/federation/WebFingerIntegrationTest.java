@@ -1,16 +1,15 @@
 package com.yue.jastodon.federation;
 
+import com.yue.jastodon.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
-@ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureRestTestClient
-class WebFingerIntegrationTest {
+class WebFingerIntegrationTest extends AbstractIntegrationTest {
 
     private static final String WEBFINGER_PATH = "/.well-known/webfinger";
     private static final String WEBFINGER = WEBFINGER_PATH + "?resource={resource}";
