@@ -47,7 +47,7 @@ public class WebFingerController {
         Jrd jrd = new Jrd(
                 "acct:" + username + "@" + baseUrl.getHost(),
                 List.of(new Jrd.Link("self", "application/activity+json",
-                        baseUrl + "/users/" + username))
+                        federationProperties.actorId().toString()))
         );
 
         return ResponseEntity.ok()

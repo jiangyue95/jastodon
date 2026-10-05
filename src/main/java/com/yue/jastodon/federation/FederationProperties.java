@@ -18,6 +18,10 @@ public record FederationProperties(String username, URI baseUrl) {
         }
     }
 
+    public URI actorId() {
+        return URI.create(baseUrl + "/users/" + username);
+    }
+
     private static boolean isOrigin(URI uri) {
         String scheme = uri.getScheme();
         return ("http".equals(scheme) || "https".equals(scheme))
