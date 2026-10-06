@@ -1,5 +1,6 @@
 package com.yue.jastodon.auth;
 
+import com.yue.jastodon.federation.FederationProperties;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,8 +14,9 @@ public class SecurityConfig {
 
     @Order(1)
     @Bean
-    SecurityFilterChain federationSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.securityMatcher("/.well-known/webfinger")
+    SecurityFilterChain federationSecurityFilterChain(
+            HttpSecurity http, FederationProperties federationProperties) throws Exception {
+        http.securityMatcher("/.well-known/webfinger", federationProperties.actorId().getPath())
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         return http.build();
     }

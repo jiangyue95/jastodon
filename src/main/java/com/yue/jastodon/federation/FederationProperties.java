@@ -22,6 +22,14 @@ public record FederationProperties(String username, URI baseUrl) {
         return URI.create(baseUrl + "/users/" + username);
     }
 
+    public URI inbox() {
+        return URI.create(actorId() + "/inbox");
+    }
+
+    public URI outbox() {
+        return URI.create(actorId() + "/outbox");
+    }
+
     private static boolean isOrigin(URI uri) {
         String scheme = uri.getScheme();
         return ("http".equals(scheme) || "https".equals(scheme))
