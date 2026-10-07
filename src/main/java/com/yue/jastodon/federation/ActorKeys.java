@@ -10,6 +10,7 @@ import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
@@ -17,15 +18,27 @@ import java.util.Base64;
 @Component
 public class ActorKeys {
 
+    private final RSAPrivateCrtKey privateKey;
     private final String publicKeyPem;
 
     public ActorKeys(FederationProperties federationProperties) {
-        RSAPrivateCrtKey privateKey = loadPrivateKey(federationProperties.privateKeyLocation());
+        this.privateKey = loadPrivateKey(federationProperties.privateKeyLocation());
         this.publicKeyPem = toPem(derivePublicKey(privateKey));
     }
 
     public String publicKeyPem() {
         return publicKeyPem;
+    }
+
+    public byte[] sign(byte[] data) {
+        try {
+            Signature signer = Signature.getInstance("SHA256withRSA");
+            signer.initSign(privateKey);
+            signer.update(data);
+            return signer.sign();
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("Cannot sign with the actor's private key", e);
+        }
     }
 
     private static PublicKey derivePublicKey(RSAPrivateCrtKey privateKey) {
