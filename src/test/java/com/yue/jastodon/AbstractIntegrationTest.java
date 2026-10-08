@@ -7,17 +7,14 @@ import org.springframework.test.context.DynamicPropertySource;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.GeneralSecurityException;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.Base64;
 
 @ActiveProfiles("test")
 public abstract class AbstractIntegrationTest {
 
-    private static final KeyPair TEST_KEY_PAIR = generateKeyPair();
+    private static final KeyPair TEST_KEY_PAIR = TestKeys.generateRsaKeyPair();
     private static final Path TEST_PRIVATE_KEY = writePrivateKey(TEST_KEY_PAIR.getPrivate());
 
     @DynamicPropertySource
@@ -29,21 +26,9 @@ public abstract class AbstractIntegrationTest {
         return TEST_KEY_PAIR.getPublic();
     }
 
-    private static KeyPair generateKeyPair() {
-        try {
-            KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-            generator.initialize(2048);
-            return generator.generateKeyPair();
-        } catch (GeneralSecurityException e) {
-            throw new IllegalStateException("Cannot generate test key pair", e);
-        }
-    }
-
     private static Path writePrivateKey(PrivateKey key) {
         try {
-            String pem = "-----BEGIN PRIVATE KEY-----\n"
-                    + Base64.getMimeEncoder(64, new byte[] {'\n'}).encodeToString(key.getEncoded())
-                    + "\n-----END PRIVATE KEY-----\n";
+            String pem = TestKeys.toPem(key);
 
             Path file = Files.createTempFile("jastodon-test-key", ".pem");
             file.toFile().deleteOnExit();
