@@ -1,9 +1,14 @@
 package com.yue.jastodon.federation;
 
+import com.yue.jastodon.TestKeys;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.PublicKey;
+import java.security.Signature;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -11,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class HttpSignatureVerifierTest {
@@ -21,6 +27,14 @@ public class HttpSignatureVerifierTest {
             "rsa-sha256",
             List.of("(request-target)", "host", "date", "digest"),
             new byte[0]);
+    private static final KeyPair KEY_PAIR = TestKeys.generateRsaKeyPair();
+    private static final String DIGEST = "SHA-256=HWKqeTJnS/L2x7rjx755Vv5ri6Ld95yKxd3htgM0d6Y=";
+    private static final byte[] BODY = "{\"type\":\"Accept\"}".getBytes(StandardCharsets.UTF_8);
+    private static final String SIGNING_STRING = "(request-target): post /users/yue/inbox\n"
+            + "host: jastodon.test\n"
+            + "date: Wed, 07 Oct 2026 10:00:00 GMT\n"
+            + "digest: " + DIGEST;
+
 
     private final HttpSignatureVerifier verifier = new HttpSignatureVerifier(CLOCK);
 
@@ -211,6 +225,110 @@ public class HttpSignatureVerifierTest {
         assertThatThrownBy(() -> verifier.verify(request, COVERS_REQUIRED_HEADS, null))
                 .isInstanceOf(SignatureVerificationException.class)
                 .hasMessageContaining("Unsupported Digest algorithm");
+    }
+
+    @Test
+    void acceptsCorrectlySignedRequest() throws GeneralSecurityException {
+        SignatureParameters params = signedParams(
+                List.of("(request-target)", "host", "date", "digest"), SIGNING_STRING);
+
+        assertThatCode(() -> verifier.verify(validRequest("/users/yue/inbox"), params, KEY_PAIR.getPublic()))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void rejectsTamperedPath() throws GeneralSecurityException {
+        SignatureParameters params = signedParams(
+                List.of("(request-target)", "host", "date", "digest"), SIGNING_STRING);
+
+        assertThatThrownBy(() -> verifier.verify(validRequest("/users/yue/outbox"), params, KEY_PAIR.getPublic()))
+                .isInstanceOf(SignatureVerificationException.class)
+                .hasMessageContaining("Signature does not match");
+    }
+
+    @Test
+    void rejectsSignatureFromAnotherKey() throws GeneralSecurityException {
+        SignatureParameters params = signedParams(
+                List.of("(request-target)", "host", "date", "digest"), SIGNING_STRING);
+        PublicKey someoneElseKey = TestKeys.generateRsaKeyPair().getPublic();
+
+        assertThatThrownBy(() -> verifier.verify(validRequest("/users/yue/inbox"), params, someoneElseKey))
+                .isInstanceOf(SignatureVerificationException.class)
+                .hasMessageContaining("Signature does not match");
+    }
+
+    @Test
+    void rejectsSignedHeaderMissingFromRequest() throws GeneralSecurityException {
+        SignatureParameters params = signedParams(
+                List.of("(request-target)", "host", "date", "digest", "content-type"), SIGNING_STRING);
+
+        assertThatThrownBy(() -> verifier.verify(validRequest("/users/yue/inbox"), params, KEY_PAIR.getPublic()))
+                .isInstanceOf(SignatureVerificationException.class)
+                .hasMessageContaining("Signed header is missing from the request: content-type");
+    }
+
+    @Test
+    void acceptsLowercaseDigestAlgorithm() throws GeneralSecurityException {
+        String digest = "sha-256=HWKqeTJnS/L2x7rjx755Vv5ri6Ld95yKxd3htgM0d6Y=";
+        IncomingRequest request = new IncomingRequest(
+                "POST",
+                "/users/yue/inbox",
+                Map.of("Host", "jastodon.test", "Date", "Wed, 07 Oct 2026 10:00:00 GMT", "Digest", digest),
+                BODY);
+        SignatureParameters params = signedParams(
+                List.of("(request-target)", "host", "date", "digest"),
+                "(request-target): post /users/yue/inbox\n"
+                + "host: jastodon.test\n"
+                + "date: Wed, 07 Oct 2026 10:00:00 GMT\n"
+                + "digest: " + digest);
+        assertThatCode(() -> verifier.verify(request, params, KEY_PAIR.getPublic()))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void acceptsDateAtEdgeOfWindow() throws GeneralSecurityException {
+        String date = "Wed, 07 Oct 2026 09:00:00 GMT";
+        IncomingRequest request = new IncomingRequest(
+                "POST",
+                "/users/yue/inbox",
+                Map.of("Host", "jastodon.test", "Date", date, "Digest", DIGEST),
+                BODY);
+        SignatureParameters params = signedParams(
+                List.of("(request-target)", "host", "date", "digest"),
+                "(request-target): post /users/yue/inbox\n"
+                + "host: jastodon.test\n"
+                + "date: " + date + "\n"
+                + "digest: " + DIGEST);
+
+        assertThatCode(() -> verifier.verify(request, params, KEY_PAIR.getPublic()))
+                .doesNotThrowAnyException();
+    }
+
+    private static IncomingRequest validRequest(String path) {
+        return  new IncomingRequest(
+                "POST",
+                path,
+                Map.of(
+                        "Host", "jastodon.test",
+                        "Date", "Wed, 07 Oct 2026 10:00:00 GMT",
+                        "Digest", DIGEST),
+                BODY);
+    }
+
+    private static SignatureParameters signedParams(List<String> headers, String signingString)
+            throws GeneralSecurityException {
+        return new SignatureParameters(
+                URI.create("https://mastodon.example/users/alice#main-key"),
+                "rsa-sha256",
+                headers,
+                sign(signingString));
+    }
+
+    private static byte[] sign(String signingString) throws GeneralSecurityException {
+        Signature rsa = Signature.getInstance("SHA256withRSA");
+        rsa.initSign(KEY_PAIR.getPrivate());
+        rsa.update(signingString.getBytes(StandardCharsets.UTF_8));
+        return rsa.sign();
     }
 
     private static IncomingRequest request(Map<String, String> headers, byte[] body) {

@@ -3,15 +3,19 @@ package com.yue.jastodon.federation;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.Signature;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -126,6 +130,39 @@ public class HttpSignatureVerifier {
         if (!MessageDigest.isEqual(expectedDigest, sha256(request.body()))) {
             throw new SignatureVerificationException("Digest does not match the body");
         }
+
+        String signingString = buildSigningString(request, params.headers());
+
+        boolean valid;
+        try {
+            Signature rsa = Signature.getInstance("SHA256withRSA");
+            rsa.initVerify(publicKey);
+            rsa.update(signingString.getBytes(StandardCharsets.UTF_8));
+            valid = rsa.verify(params.signature());
+        } catch (GeneralSecurityException e) {
+            throw new SignatureVerificationException("Signature could not be verified");
+        }
+
+        if (!valid) {
+            throw new SignatureVerificationException("Signature does not match");
+        }
+    }
+
+    private static String buildSigningString(IncomingRequest request, List<String> headerNames) {
+        List<String> lines = new ArrayList<>();
+        for (String name : headerNames) {
+            if (name.equals("(request-target)")) {
+                lines.add("(request-target): "
+                        + request.method().toLowerCase(Locale.ROOT) + " " + request.pathAndQuery());
+            } else {
+                String value = request.headers().get(name);
+                if (value == null) {
+                    throw new SignatureVerificationException("Signed header is missing from the request: " + name);
+                }
+                lines.add(name + ": " + value.trim());
+            }
+        }
+        return String.join("\n", lines);
     }
 
     private static byte[] sha256(byte[] body) {
