@@ -4,7 +4,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 
-public class RemoteUrlGuard {
+public class RemoteUrlGuard implements OutboundUrlPolicy {
 
     private final HostResolver hostResolver;
 
@@ -12,6 +12,7 @@ public class RemoteUrlGuard {
         this.hostResolver = hostResolver;
     }
 
+    @Override
     public void check(URI uri) {
         if (!"https".equalsIgnoreCase(uri.getScheme())) {
             throw new UnsafeRemoteUrlException("Only https URLs are allowed: " + uri);
