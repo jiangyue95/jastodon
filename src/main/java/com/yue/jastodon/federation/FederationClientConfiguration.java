@@ -27,7 +27,7 @@ public class FederationClientConfiguration {
     }
 
     @Bean
-    RestClient federationClient() {
+    RestClient federationRestClient() {
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(CONNECT_TIMEOUT)
                 .followRedirects(HttpClient.Redirect.NEVER)
