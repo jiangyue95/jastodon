@@ -86,7 +86,7 @@ class RemoteActorKeyFetcherTest {
     void doesNotRequestWhenPolicyRejects() {
         URI actor = url("/users/alice");
         URI keyId = URI.create(actor + "#main-key");
-        serve("/users/alice", 200, Map.of("Content-Type", "appliction/activity+json"),
+        serve("/users/alice", 200, Map.of("Content-Type", "application/activity+json"),
                 actorJson(keyId, actor, TestKeys.toPem(KEY_PAIR.getPublic())));
         RemoteActorKeyFetcher fetcher = new RemoteActorKeyFetcher(
                 new FederationClientConfiguration().federationRestClient(),
