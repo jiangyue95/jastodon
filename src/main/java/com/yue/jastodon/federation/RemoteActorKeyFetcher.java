@@ -57,7 +57,7 @@ public class RemoteActorKeyFetcher {
             throw new RemoteKeyFetchException("publicKey.id does not match " + keyId);
         }
         if (key.owner() == null || !hostOf(keyId).equalsIgnoreCase(hostOf(key.owner()))) {
-            throw new RemoteKeyFetchException("publicKey.owner is no the same host as " + keyId);
+            throw new RemoteKeyFetchException("publicKey.owner is not on the same host as " + keyId);
         }
         if (key.publicKeyPem() == null) {
             throw new RemoteKeyFetchException("No publicKeyPem in " + documentUrl);

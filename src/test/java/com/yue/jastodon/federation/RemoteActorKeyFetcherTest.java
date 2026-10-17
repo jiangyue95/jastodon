@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RemoteActorKeyFetcherTest {
 
@@ -52,6 +53,102 @@ class RemoteActorKeyFetcherTest {
         assertThat(key.publicKey().getEncoded()).isEqualTo(KEY_PAIR.getPublic().getEncoded());
         assertThat(lastAccept).contains("application/activity+json");
         assertThat(requestCounts.get("/users/alice")).hasValue(1);
+    }
+
+    @Test
+    void rejectsOwnerOnAnotherHost() {
+        URI actor = url("/users/alice");
+        URI keyId = URI.create(actor + "#main-key");
+        URI impersonated = URI.create("https://mastodon.social/users/bob");
+        serve("/users/alice", 200, Map.of("Content-Type", "application/activity+json"),
+                actorJson(keyId, impersonated, TestKeys.toPem(KEY_PAIR.getPublic())));
+
+        assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
+                .isInstanceOf(RemoteKeyFetchException.class)
+                .hasMessageContaining("not on the same host");
+    }
+
+    @Test
+    void doesNotFollowRedirects() {
+        URI actor = url("/users/alice");
+        URI keyId = URI.create(actor + "#main-key");
+        serve("/users/alice", 302, Map.of("Location", url("/internal").toString()), "");
+        serve("/internal", 200, Map.of("Content-Type", "application/activity+json"),
+                actorJson(keyId, actor, TestKeys.toPem(KEY_PAIR.getPublic())));
+
+        assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
+                .isInstanceOf(RemoteKeyFetchException.class)
+                .hasMessageContaining("Unexpected status 302");
+        assertThat(requestCounts.get("/internal")).hasValue(0);
+    }
+
+    @Test
+    void doesNotRequestWhenPolicyRejects() {
+        URI actor = url("/users/alice");
+        URI keyId = URI.create(actor + "#main-key");
+        serve("/users/alice", 200, Map.of("Content-Type", "appliction/activity+json"),
+                actorJson(keyId, actor, TestKeys.toPem(KEY_PAIR.getPublic())));
+        RemoteActorKeyFetcher fetcher = new RemoteActorKeyFetcher(
+                new FederationClientConfiguration().federationRestClient(),
+                uri -> {
+                    throw new UnsafeRemoteUrlException("blocked by test policy");
+                });
+
+        assertThatThrownBy(() -> fetcher.fetch(keyId))
+                .isInstanceOf(RemoteKeyFetchException.class)
+                .hasMessageContaining("Refusing to fetch")
+                .hasMessageContaining("blocked by test policy");
+        assertThat(requestCounts.get("/users/alice")).hasValue(0);
+    }
+
+    @Test
+    void rejectsMismatchedKeyId() {
+        URI actor = url("/users/alice");
+        URI keyId = URI.create(actor + "#main-key");
+        URI otherKeyId = URI.create(actor + "#other-key");
+        serve("/users/alice", 200, Map.of("Content-Type", "application/activity+json"),
+                actorJson(otherKeyId, actor, TestKeys.toPem(KEY_PAIR.getPublic())));
+
+        assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
+                .isInstanceOf(RemoteKeyFetchException.class)
+                .hasMessageContaining("publicKey.id does not match");
+    }
+
+    @Test
+    void rejectsNonSuccessStatus() {
+        URI actor = url("/users/alice");
+        URI keyId = URI.create(actor + "#main-key");
+        serve("/users/alice", 404, Map.of(), "");
+
+        assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
+                .isInstanceOf(RemoteKeyFetchException.class)
+                .hasMessageContaining("Unexpected status 404");
+    }
+
+    @Test
+    void rejectsDocumentWithoutPublicKey() {
+        URI actor = url("/users/alice");
+        URI keyId = URI.create(actor + "#main-key");
+        serve("/users/alice", 200, Map.of("Content-Type", "application/activity+json"),
+                """
+                        {"id": "%s", "type": "Person"}
+                        """.formatted(actor));
+
+        assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
+                .isInstanceOf(RemoteKeyFetchException.class)
+                .hasMessageContaining("No publicKey");
+    }
+
+    @Test
+    void rejectsInvalidPublicKey() {
+        URI actor = url("/users/alice");
+        URI keyId = URI.create(actor + "#main-key");
+        serve("/users/alice", 200, Map.of("Content-Type", "application/activity+json"),
+                actorJson(keyId, actor, "not a key"));
+
+        assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
+                .isInstanceOf(RemoteKeyFetchException.class)
+                .hasMessageContaining("Invalid public key");
     }
 
     private void serve(String path, int status, Map<String, String> headers, String body) {
