@@ -1,5 +1,6 @@
 package com.yue.jastodon;
 
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -12,6 +13,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 
 @ActiveProfiles("test")
+@Import(TestcontainersConfiguration.class)
 public abstract class AbstractIntegrationTest {
 
     private static final KeyPair TEST_KEY_PAIR = TestKeys.generateRsaKeyPair();
