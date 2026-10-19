@@ -18,10 +18,15 @@ public class InboxController {
 
     private final FederationProperties federationProperties;
     private final HttpSignatureVerifier verifier;
+    private final RemoteActorKeyFetcher keyFetcher;
 
-    public InboxController(FederationProperties federationProperties, HttpSignatureVerifier verifier) {
+    public InboxController(
+            FederationProperties federationProperties,
+            HttpSignatureVerifier verifier,
+            RemoteActorKeyFetcher keyFetcher) {
         this.federationProperties = federationProperties;
         this.verifier = verifier;
+        this.keyFetcher = keyFetcher;
     }
 
     @PostMapping("/users/{username}/inbox")
@@ -33,11 +38,12 @@ public class InboxController {
 
         IncomingRequest incoming = toIncomingRequest(request, body);
         SignatureParameters params = verifier.parse(incoming.headers().get("signature"));
-
+        RemoteKey key = keyFetcher.fetch(params.keyId());
+        verifier.verify(incoming, params, key.publicKey());
         return ResponseEntity.accepted().build();
     }
 
-    @ExceptionHandler(SignatureVerificationException.class)
+    @ExceptionHandler({SignatureVerificationException.class, RemoteKeyFetchException.class})
     ResponseEntity<Void> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
