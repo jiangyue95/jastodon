@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -19,14 +22,18 @@ public class InboxController {
     private final FederationProperties federationProperties;
     private final HttpSignatureVerifier verifier;
     private final RemoteActorKeyFetcher keyFetcher;
+    private final JsonMapper jsonMapper;
 
     public InboxController(
             FederationProperties federationProperties,
             HttpSignatureVerifier verifier,
-            RemoteActorKeyFetcher keyFetcher) {
+            RemoteActorKeyFetcher keyFetcher,
+            JsonMapper jsonMapper) {
         this.federationProperties = federationProperties;
         this.verifier = verifier;
         this.keyFetcher = keyFetcher;
+        this.jsonMapper = jsonMapper;
+
     }
 
     @PostMapping("/users/{username}/inbox")
@@ -40,6 +47,11 @@ public class InboxController {
         SignatureParameters params = verifier.parse(incoming.headers().get("signature"));
         RemoteKey key = keyFetcher.fetch(params.keyId());
         verifier.verify(incoming, params, key.publicKey());
+
+        IncomingActivity activity = readActivity(body);
+        if (!key.owner().equals(activity.actor())) {
+            throw new SignatureVerificationException("Signature key does not belong to the activity's actor");
+        }
         return ResponseEntity.accepted().build();
     }
 
@@ -56,5 +68,18 @@ public class InboxController {
         String query = request.getQueryString();
         String pathAndQuery = request.getRequestURI() + (query == null ? "" : "?" + query);
         return  new IncomingRequest(request.getMethod(), pathAndQuery, headers, body);
+    }
+
+    private IncomingActivity readActivity(byte[] body) {
+        IncomingActivity activity;
+        try {
+            activity = jsonMapper.readValue(body, IncomingActivity.class);
+        } catch (JacksonException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Activity has no actor", e);
+        }
+        if (activity == null || activity.actor() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Activity has no actor");
+        }
+        return activity;
     }
 }

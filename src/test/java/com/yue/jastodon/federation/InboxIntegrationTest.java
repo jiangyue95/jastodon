@@ -111,8 +111,67 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
                 .body(body)
                 .exchange()
                 .expectStatus().isUnauthorized();
+    }
 
+    @Test
+    void rejectsActivityFromAnotherActor() {
+        byte[] body = """
+                {
+                  "id": "https://remote.test/activities/follow-2",
+                  "type": "Follow",
+                  "actor": "https://remote.test/users/bob",
+                  "object": "https://jastodon.test/users/yue"
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+        SignatureHeaders headers = remoteSigner().sign(
+                HttpMethod.POST, URI.create("http://localhost:" + port + INBOX), body);
 
+        client.post().uri(INBOX)
+                .header("Date", headers.date())
+                .header("Digest", headers.digest())
+                .header("Signature", headers.signature())
+                .contentType(MediaType.parseMediaType("application/activity+json"))
+                .body(body)
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void rejectsMalformedJson() {
+        byte[] body = "not json".getBytes(StandardCharsets.UTF_8);
+        SignatureHeaders headers = remoteSigner().sign(
+                HttpMethod.POST, URI.create("http://localhost:" + port + INBOX), body);
+
+        client.post().uri(INBOX)
+                .header("Date", headers.date())
+                .header("Digest", headers.digest())
+                .header("Signature", headers.signature())
+                .contentType(MediaType.parseMediaType("application/activity+json"))
+                .body(body)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void rejectsActivityWithoutActor() {
+        byte[] body = """
+                {
+                  "id": "https://remote.test/activities/follow-3",
+                  "type": "Follow",
+                  "object": "https://jastodon.test/users/yue"
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+        SignatureHeaders headers = remoteSigner().sign(
+                HttpMethod.POST, URI.create("http://localhost:" + port + INBOX), body);
+
+        client.post().uri(INBOX)
+                .header("Date", headers.date())
+                .header("Digest", headers.digest())
+                .header("Signature", headers.signature())
+                .contentType(MediaType.parseMediaType("application/activity+json"))
+                .body(body)
+                .exchange()
+                .expectStatus().isBadRequest();
     }
 
     private static String followJson() {
