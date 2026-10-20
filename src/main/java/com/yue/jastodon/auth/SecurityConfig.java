@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -16,8 +17,14 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain federationSecurityFilterChain(
             HttpSecurity http, FederationProperties federationProperties) throws Exception {
-        http.securityMatcher("/.well-known/webfinger", federationProperties.actorId().getPath())
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+        http.securityMatcher(
+                "/.well-known/webfinger",
+                        federationProperties.actorId().getPath(),
+                        federationProperties.inbox().getPath())
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();
     }
 

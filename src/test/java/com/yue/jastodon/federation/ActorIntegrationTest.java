@@ -66,7 +66,7 @@ class ActorIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void subPathsAreNotPublic() {
-        client.get().uri("/users/yue/inbox")
+        client.get().uri("/users/yue/settings")
                 .exchange()
                 .expectStatus().isFound();
     }
