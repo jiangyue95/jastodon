@@ -29,7 +29,7 @@ public class RemoteActorKeyFetcher {
         try {
             outboundUrlPolicy.check(documentUrl);
         } catch (UnsafeRemoteUrlException e) {
-            throw new RemoteKeyFetchException("Refusing to fetch " + documentUrl + ": " + e.getMessage());
+            throw new RemoteFetchException("Refusing to fetch " + documentUrl + ": " + e.getMessage());
         }
 
         RemoteActorDocument document;
@@ -40,34 +40,34 @@ public class RemoteActorKeyFetcher {
                     .retrieve()
                     .onStatus(status -> !status.is2xxSuccessful(),
                             (request, response) -> {
-                        throw new RemoteKeyFetchException(
+                        throw new RemoteFetchException(
                                 "Unexpected status " + response.getStatusCode() + " from " + documentUrl);
                     })
                     .body(RemoteActorDocument.class);
         } catch (RestClientException e) {
-            throw new RemoteKeyFetchException("Cannot fetch " + documentUrl, e);
+            throw new RemoteFetchException("Cannot fetch " + documentUrl, e);
         }
 
         if (document == null || document.publicKey() == null) {
-            throw new RemoteKeyFetchException("No publicKey in " + documentUrl);
+            throw new RemoteFetchException("No publicKey in " + documentUrl);
         }
         RemoteActorDocument.KeyDocument key = document.publicKey();
 
         if (!keyId.equals(key.id())) {
-            throw new RemoteKeyFetchException("publicKey.id does not match " + keyId);
+            throw new RemoteFetchException("publicKey.id does not match " + keyId);
         }
         if (key.owner() == null || !hostOf(keyId).equalsIgnoreCase(hostOf(key.owner()))) {
-            throw new RemoteKeyFetchException("publicKey.owner is not on the same host as " + keyId);
+            throw new RemoteFetchException("publicKey.owner is not on the same host as " + keyId);
         }
         if (key.publicKeyPem() == null) {
-            throw new RemoteKeyFetchException("No publicKeyPem in " + documentUrl);
+            throw new RemoteFetchException("No publicKeyPem in " + documentUrl);
         }
 
         PublicKey publicKey;
         try {
             publicKey = PublicKeyPem.parse(key.publicKeyPem());
         } catch (IllegalArgumentException e) {
-            throw new RemoteKeyFetchException("Invalid public key in " + documentUrl, e);
+            throw new RemoteFetchException("Invalid public key in " + documentUrl, e);
         }
 
         return new RemoteKey(keyId, key.owner(), publicKey);

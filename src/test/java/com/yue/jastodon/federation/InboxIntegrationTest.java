@@ -98,7 +98,7 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void rejectsWhenKeyCannotBeFetched() {
-        when(keyFetcher.fetch(REMOTE_KEY_ID)).thenThrow(new RemoteKeyFetchException("unreachable"));
+        when(keyFetcher.fetch(REMOTE_KEY_ID)).thenThrow(new RemoteFetchException("unreachable"));
         byte[] body = followJson().getBytes(StandardCharsets.UTF_8);
         SignatureHeaders headers = remoteSigner().sign(
                 HttpMethod.POST, URI.create("https://localhost:" + port + INBOX), body);

@@ -55,7 +55,7 @@ public class InboxController {
         return ResponseEntity.accepted().build();
     }
 
-    @ExceptionHandler({SignatureVerificationException.class, RemoteKeyFetchException.class})
+    @ExceptionHandler({SignatureVerificationException.class, RemoteFetchException.class})
     ResponseEntity<Void> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
