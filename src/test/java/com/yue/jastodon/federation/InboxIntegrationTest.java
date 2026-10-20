@@ -174,6 +174,29 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
                 .expectStatus().isBadRequest();
     }
 
+    @Test
+    void rejectsSignatureMadeWithAnotherKey() {
+        KeyPair attacker = TestKeys.generateRsaKeyPair();
+        FederationProperties forged = new FederationProperties(
+                "alice",
+                URI.create("https://remote.test"),
+                new ByteArrayResource(TestKeys.toPem(attacker.getPrivate()).getBytes(StandardCharsets.UTF_8)));
+        HttpSignatureSigner attackerSigner = new HttpSignatureSigner(new ActorKeys(forged), forged, Clock.systemUTC());
+
+        byte[] body = followJson().getBytes(StandardCharsets.UTF_8);
+        SignatureHeaders headers = attackerSigner.sign(
+                HttpMethod.POST, URI.create("http://localhost:" + port + INBOX), body);
+
+        client.post().uri(INBOX)
+                .header("Date", headers.date())
+                .header("Digest", headers.digest())
+                .header("Signature", headers.signature())
+                .contentType(MediaType.parseMediaType("application/activity+json"))
+                .body(body)
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
     private static String followJson() {
         return """
                 {
