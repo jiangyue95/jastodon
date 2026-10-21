@@ -2,6 +2,7 @@ package com.yue.jastodon.federation;
 
 import org.springframework.stereotype.Component;
 
+import java.net.URI;
 import java.time.Clock;
 
 @Component
@@ -33,7 +34,15 @@ public class ActivityHandler {
         if (!federationProperties.actorId().equals(follow.object())) {
             return;
         }
-        RemoteActor actor = remoteActorFetcher.fetch(follow.actor());
+        RemoteActor actor = fetchActor(follow.actor());
         followerRepository.save(new Follower(follow.actor(), actor.inbox(), follow.id(), clock.instant()));
+    }
+
+    private RemoteActor fetchActor(URI actorId) {
+        try {
+            return remoteActorFetcher.fetch(actorId);
+        } catch (RemoteFetchException e) {
+            throw new RetryLaterException("Cannot fetch actor " + actorId, e);
+        }
     }
 }

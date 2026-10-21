@@ -13,6 +13,7 @@ import java.time.Clock;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -69,5 +70,14 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
 
         assertThat(followerRepository.findAll()).isEmpty();
         verifyNoInteractions(remoteActorFetcher);
+    }
+
+    @Test
+    void followIsRetriedLaterWhenTheActorCannotBeFetched() {
+        when(remoteActorFetcher.fetch(ALICE)).thenThrow(new RemoteFetchException("unreachable"));
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, YUE)))
+                .isInstanceOf(RetryLaterException.class);
+        assertThat(followerRepository.findAll()).isEmpty();
     }
  }

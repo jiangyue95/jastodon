@@ -11,6 +11,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
@@ -33,16 +34,25 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     RestTestClient client;
 
+    @Autowired
+    JdbcClient jdbcClient;
+
     @LocalServerPort
     int port;
 
     @MockitoBean
     RemoteActorKeyFetcher keyFetcher;
 
+    @MockitoBean
+    RemoteActorFetcher remoteActorFetcher;
+
     @BeforeEach
     void remoteKeyIsKnown() {
+        jdbcClient.sql("DELETE FROM followers").update();
         when(keyFetcher.fetch(REMOTE_KEY_ID))
                 .thenReturn(new RemoteKey(REMOTE_KEY_ID, REMOTE_ACTOR, REMOTE_KEY_PAIR.getPublic()));
+        when(remoteActorFetcher.fetch(REMOTE_ACTOR))
+                .thenReturn(new RemoteActor(REMOTE_ACTOR, URI.create("https://remote.test/users/alice/inbox")));
     }
 
     private static HttpSignatureSigner remoteSigner() {
