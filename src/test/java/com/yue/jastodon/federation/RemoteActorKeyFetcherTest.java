@@ -89,10 +89,10 @@ class RemoteActorKeyFetcherTest {
         serve("/users/alice", 200, Map.of("Content-Type", "application/activity+json"),
                 actorJson(keyId, actor, TestKeys.toPem(KEY_PAIR.getPublic())));
         RemoteActorKeyFetcher fetcher = new RemoteActorKeyFetcher(
-                new FederationClientConfiguration().federationRestClient(),
+                new ActivityPubClient(new FederationClientConfiguration().federationRestClient(),
                 uri -> {
                     throw new UnsafeRemoteUrlException("blocked by test policy");
-                });
+                }));
 
         assertThatThrownBy(() -> fetcher.fetch(keyId))
                 .isInstanceOf(RemoteFetchException.class)
@@ -184,6 +184,7 @@ class RemoteActorKeyFetcherTest {
     }
 
     private static RemoteActorKeyFetcher fetcherAllowingEverything() {
-        return new RemoteActorKeyFetcher(new FederationClientConfiguration().federationRestClient(), uri -> {});
+        return new RemoteActorKeyFetcher(new ActivityPubClient(
+                new FederationClientConfiguration().federationRestClient(), uri -> {}));
     }
 }
