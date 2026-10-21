@@ -19,7 +19,9 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.time.Clock;
+import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -36,6 +38,9 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     JdbcClient jdbcClient;
+
+    @Autowired
+    FollowerRepository followerRepository;
 
     @LocalServerPort
     int port;
@@ -205,6 +210,49 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
                 .body(body)
                 .exchange()
                 .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void signedFollowStoresTheFollower() {
+        byte[] body = followJson().getBytes(StandardCharsets.UTF_8);
+        SignatureHeaders headers = remoteSigner().sign(
+                HttpMethod.POST, URI.create("http://localhost:" + port + INBOX), body);
+
+        client.post().uri(INBOX)
+                .header("Date", headers.date())
+                .header("Digest", headers.digest())
+                .header("Signature", headers.signature())
+                .contentType(MediaType.parseMediaType("application/activity+json"))
+                .body(body)
+                .exchange()
+                .expectStatus().isAccepted();
+
+        List<Follower> followers = followerRepository.findAll();
+        assertThat(followers).hasSize(1);
+        Follower follower = followers.get(0);
+        assertThat(follower.actorId()).isEqualTo(REMOTE_ACTOR);
+        assertThat(follower.inbox()).isEqualTo(URI.create("https://remote.test/users/alice/inbox"));
+
+        assertThat(follower.followActivityId()).isEqualTo(URI.create("https://remote.test/activities/follow-1"));
+    }
+
+    @Test
+    void answers503WhenTheFollowerCannotBeFetched() {
+        when(remoteActorFetcher.fetch(REMOTE_ACTOR)).thenThrow(new RemoteFetchException("Unreachable"));
+        byte[] body = followJson().getBytes(StandardCharsets.UTF_8);
+        SignatureHeaders headers = remoteSigner().sign(
+                HttpMethod.POST, URI.create("http://localhost:" + port + INBOX), body);
+
+        client.post().uri(INBOX)
+                .header("Date", headers.date())
+                .header("Digest", headers.digest())
+                .header("Signature", headers.signature())
+                .contentType(MediaType.parseMediaType("application/activity+json"))
+                .body(body)
+                .exchange()
+                .expectStatus().isEqualTo(503);
+
+        assertThat(followerRepository.findAll()).isEmpty();
     }
 
     private static String followJson() {
