@@ -1,6 +1,7 @@
 package com.yue.jastodon.federation;
 
 import com.yue.jastodon.AbstractIntegrationTest;
+import com.yue.jastodon.federation.webfinger.Jrd;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;

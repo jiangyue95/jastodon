@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.webfinger;
 
 import java.util.List;
 
