@@ -64,7 +64,7 @@ class RemoteActorKeyFetcherTest {
                 actorJson(keyId, impersonated, TestKeys.toPem(KEY_PAIR.getPublic())));
 
         assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
-                .isInstanceOf(RemoteKeyFetchException.class)
+                .isInstanceOf(RemoteFetchException.class)
                 .hasMessageContaining("not on the same host");
     }
 
@@ -77,7 +77,7 @@ class RemoteActorKeyFetcherTest {
                 actorJson(keyId, actor, TestKeys.toPem(KEY_PAIR.getPublic())));
 
         assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
-                .isInstanceOf(RemoteKeyFetchException.class)
+                .isInstanceOf(RemoteFetchException.class)
                 .hasMessageContaining("Unexpected status 302");
         assertThat(requestCounts.get("/internal")).hasValue(0);
     }
@@ -89,13 +89,13 @@ class RemoteActorKeyFetcherTest {
         serve("/users/alice", 200, Map.of("Content-Type", "application/activity+json"),
                 actorJson(keyId, actor, TestKeys.toPem(KEY_PAIR.getPublic())));
         RemoteActorKeyFetcher fetcher = new RemoteActorKeyFetcher(
-                new FederationClientConfiguration().federationRestClient(),
+                new ActivityPubClient(new FederationClientConfiguration().federationRestClient(),
                 uri -> {
                     throw new UnsafeRemoteUrlException("blocked by test policy");
-                });
+                }));
 
         assertThatThrownBy(() -> fetcher.fetch(keyId))
-                .isInstanceOf(RemoteKeyFetchException.class)
+                .isInstanceOf(RemoteFetchException.class)
                 .hasMessageContaining("Refusing to fetch")
                 .hasMessageContaining("blocked by test policy");
         assertThat(requestCounts.get("/users/alice")).hasValue(0);
@@ -110,7 +110,7 @@ class RemoteActorKeyFetcherTest {
                 actorJson(otherKeyId, actor, TestKeys.toPem(KEY_PAIR.getPublic())));
 
         assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
-                .isInstanceOf(RemoteKeyFetchException.class)
+                .isInstanceOf(RemoteFetchException.class)
                 .hasMessageContaining("publicKey.id does not match");
     }
 
@@ -121,7 +121,7 @@ class RemoteActorKeyFetcherTest {
         serve("/users/alice", 404, Map.of(), "");
 
         assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
-                .isInstanceOf(RemoteKeyFetchException.class)
+                .isInstanceOf(RemoteFetchException.class)
                 .hasMessageContaining("Unexpected status 404");
     }
 
@@ -135,7 +135,7 @@ class RemoteActorKeyFetcherTest {
                         """.formatted(actor));
 
         assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
-                .isInstanceOf(RemoteKeyFetchException.class)
+                .isInstanceOf(RemoteFetchException.class)
                 .hasMessageContaining("No publicKey");
     }
 
@@ -147,7 +147,7 @@ class RemoteActorKeyFetcherTest {
                 actorJson(keyId, actor, "not a key"));
 
         assertThatThrownBy(() -> fetcherAllowingEverything().fetch(keyId))
-                .isInstanceOf(RemoteKeyFetchException.class)
+                .isInstanceOf(RemoteFetchException.class)
                 .hasMessageContaining("Invalid public key");
     }
 
@@ -184,6 +184,7 @@ class RemoteActorKeyFetcherTest {
     }
 
     private static RemoteActorKeyFetcher fetcherAllowingEverything() {
-        return new RemoteActorKeyFetcher(new FederationClientConfiguration().federationRestClient(), uri -> {});
+        return new RemoteActorKeyFetcher(new ActivityPubClient(
+                new FederationClientConfiguration().federationRestClient(), uri -> {}));
     }
 }

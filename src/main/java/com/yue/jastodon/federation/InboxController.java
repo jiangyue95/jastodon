@@ -23,17 +23,19 @@ public class InboxController {
     private final HttpSignatureVerifier verifier;
     private final RemoteActorKeyFetcher keyFetcher;
     private final JsonMapper jsonMapper;
+    private final ActivityHandler activityHandler;
 
     public InboxController(
             FederationProperties federationProperties,
             HttpSignatureVerifier verifier,
             RemoteActorKeyFetcher keyFetcher,
-            JsonMapper jsonMapper) {
+            JsonMapper jsonMapper,
+            ActivityHandler activityHandler) {
         this.federationProperties = federationProperties;
         this.verifier = verifier;
         this.keyFetcher = keyFetcher;
         this.jsonMapper = jsonMapper;
-
+        this.activityHandler = activityHandler;
     }
 
     @PostMapping("/users/{username}/inbox")
@@ -52,12 +54,23 @@ public class InboxController {
         if (!key.owner().equals(activity.actor())) {
             throw new SignatureVerificationException("Signature key does not belong to the activity's actor");
         }
+        activityHandler.handle(activity);
         return ResponseEntity.accepted().build();
     }
 
-    @ExceptionHandler({SignatureVerificationException.class, RemoteKeyFetchException.class})
+    @ExceptionHandler({SignatureVerificationException.class, RemoteFetchException.class})
     ResponseEntity<Void> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    @ExceptionHandler(RetryLaterException.class)
+    ResponseEntity<Void> retryLater() {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
+    }
+
+    @ExceptionHandler(InvalidActivityException.class)
+    ResponseEntity<Void> invalidActivity() {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
     private static IncomingRequest toIncomingRequest(HttpServletRequest request, byte[] body) {
