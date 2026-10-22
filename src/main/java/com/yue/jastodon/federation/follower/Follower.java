@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.follower;
 
 import java.net.URI;
 import java.time.Instant;

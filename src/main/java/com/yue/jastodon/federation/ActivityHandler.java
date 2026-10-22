@@ -1,5 +1,7 @@
 package com.yue.jastodon.federation;
 
+import com.yue.jastodon.federation.follower.Follower;
+import com.yue.jastodon.federation.follower.FollowerRepository;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
