@@ -12,7 +12,7 @@ public class ActivityPubClient {
 
     private static final MediaType ACTIVITY_JSON = MediaType.parseMediaType("application/activity+json");
     private static final MediaType LD_JSON_ACTIVITYSTREAMS =
-            MediaType.parseMediaType("application/1d+json;profile=\"https://www.w3.org/ns/activitystreams\"");
+            MediaType.parseMediaType("application/ld+json;profile=\"https://www.w3.org/ns/activitystreams\"");
 
     private final RestClient restClient;
     private final OutboundUrlPolicy outboundUrlPolicy;
