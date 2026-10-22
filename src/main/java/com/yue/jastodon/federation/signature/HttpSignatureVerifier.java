@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.signature;
 
 import org.springframework.stereotype.Component;
 

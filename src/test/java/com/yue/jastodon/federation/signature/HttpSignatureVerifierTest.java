@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.signature;
 
 import com.yue.jastodon.TestKeys;
 import org.junit.jupiter.api.Test;

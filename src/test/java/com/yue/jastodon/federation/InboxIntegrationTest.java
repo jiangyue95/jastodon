@@ -5,6 +5,8 @@ import com.yue.jastodon.TestKeys;
 import com.yue.jastodon.federation.actor.ActorKeys;
 import com.yue.jastodon.federation.follower.Follower;
 import com.yue.jastodon.federation.follower.FollowerRepository;
+import com.yue.jastodon.federation.signature.HttpSignatureSigner;
+import com.yue.jastodon.federation.signature.SignatureHeaders;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

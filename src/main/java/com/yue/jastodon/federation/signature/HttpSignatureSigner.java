@@ -1,5 +1,6 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.signature;
 
+import com.yue.jastodon.federation.FederationProperties;
 import com.yue.jastodon.federation.actor.ActorKeys;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;

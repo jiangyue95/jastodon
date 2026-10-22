@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.signature;
 
 import java.net.URI;
 import java.util.List;
