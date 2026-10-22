@@ -88,7 +88,7 @@ public class InboxController {
         try {
             activity = jsonMapper.readValue(body, IncomingActivity.class);
         } catch (JacksonException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Activity has no actor", e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot parse activity", e);
         }
         if (activity == null || activity.actor() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Activity has no actor");
