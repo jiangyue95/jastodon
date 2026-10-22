@@ -1,5 +1,6 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.actor;
 
+import com.yue.jastodon.federation.FederationProperties;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

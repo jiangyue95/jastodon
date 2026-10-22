@@ -1,5 +1,6 @@
 package com.yue.jastodon.federation;
 
+import com.yue.jastodon.federation.actor.ActorKeys;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 

@@ -2,6 +2,7 @@ package com.yue.jastodon.federation;
 
 import com.yue.jastodon.AbstractIntegrationTest;
 import com.yue.jastodon.TestKeys;
+import com.yue.jastodon.federation.actor.ActorKeys;
 import com.yue.jastodon.federation.follower.Follower;
 import com.yue.jastodon.federation.follower.FollowerRepository;
 import org.junit.jupiter.api.BeforeEach;

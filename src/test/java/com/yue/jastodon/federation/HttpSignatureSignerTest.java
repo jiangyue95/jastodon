@@ -1,6 +1,7 @@
 package com.yue.jastodon.federation;
 
 import com.yue.jastodon.TestKeys;
+import com.yue.jastodon.federation.actor.ActorKeys;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpMethod;
