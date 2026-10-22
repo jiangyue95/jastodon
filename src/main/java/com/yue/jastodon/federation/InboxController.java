@@ -68,6 +68,11 @@ public class InboxController {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
     }
 
+    @ExceptionHandler(InvalidActivityException.class)
+    ResponseEntity<Void> invalidActivity() {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    }
+
     private static IncomingRequest toIncomingRequest(HttpServletRequest request, byte[] body) {
         Map<String, String> headers = new HashMap<>();
         for (String name : Collections.list(request.getHeaderNames())) {

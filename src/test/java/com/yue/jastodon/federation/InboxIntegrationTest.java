@@ -128,6 +128,21 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void rejectsFollowWithoutId() {
+        byte[] bodyWithoutId = """
+                {
+                  "type": "Follow",
+                  "actor": "https://remote.test/users/alice",
+                  "object": "https://jastodon.test/users/yue"
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+
+        postSigned(bodyWithoutId).expectStatus().isBadRequest();
+
+        assertThat(followerRepository.findAll()).isEmpty();
+    }
+
+    @Test
     void rejectsSignatureMadeWithAnotherKey() {
         KeyPair attacker = TestKeys.generateRsaKeyPair();
         FederationProperties forged = new FederationProperties(
