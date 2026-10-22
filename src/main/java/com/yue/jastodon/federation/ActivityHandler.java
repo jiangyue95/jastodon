@@ -2,6 +2,9 @@ package com.yue.jastodon.federation;
 
 import com.yue.jastodon.federation.follower.Follower;
 import com.yue.jastodon.federation.follower.FollowerRepository;
+import com.yue.jastodon.federation.remote.RemoteActor;
+import com.yue.jastodon.federation.remote.RemoteActorFetcher;
+import com.yue.jastodon.federation.remote.RemoteFetchException;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;

@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.remote;
 
 import com.yue.jastodon.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;

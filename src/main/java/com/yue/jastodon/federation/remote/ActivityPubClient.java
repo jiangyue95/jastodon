@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.remote;
 
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;

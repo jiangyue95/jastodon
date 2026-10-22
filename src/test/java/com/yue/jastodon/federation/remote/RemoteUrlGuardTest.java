@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.remote;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

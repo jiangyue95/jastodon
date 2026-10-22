@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.remote;
 
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;

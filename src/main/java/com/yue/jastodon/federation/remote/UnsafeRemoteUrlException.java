@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.remote;
 
 public class UnsafeRemoteUrlException extends RuntimeException {
 
