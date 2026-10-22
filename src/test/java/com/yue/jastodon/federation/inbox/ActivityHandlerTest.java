@@ -1,4 +1,4 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.inbox;
 
 import com.yue.jastodon.AbstractIntegrationTest;
 import com.yue.jastodon.federation.follower.Follower;

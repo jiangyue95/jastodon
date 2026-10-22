@@ -1,5 +1,6 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.inbox;
 
+import com.yue.jastodon.federation.FederationProperties;
 import com.yue.jastodon.federation.follower.Follower;
 import com.yue.jastodon.federation.follower.FollowerRepository;
 import com.yue.jastodon.federation.remote.RemoteActor;

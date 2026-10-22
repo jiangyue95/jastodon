@@ -1,5 +1,6 @@
-package com.yue.jastodon.federation;
+package com.yue.jastodon.federation.inbox;
 
+import com.yue.jastodon.federation.FederationProperties;
 import com.yue.jastodon.federation.remote.RemoteActorKeyFetcher;
 import com.yue.jastodon.federation.remote.RemoteFetchException;
 import com.yue.jastodon.federation.remote.RemoteKey;
