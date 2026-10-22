@@ -51,7 +51,7 @@ class RemoteActorKeyFetcherTest {
         assertThat(key.keyId()).isEqualTo(keyId);
         assertThat(key.owner()).isEqualTo(actor);
         assertThat(key.publicKey().getEncoded()).isEqualTo(KEY_PAIR.getPublic().getEncoded());
-        assertThat(lastAccept).contains("application/activity+json");
+        assertThat(lastAccept).contains("application/activity+json", "application/ld+json");
         assertThat(requestCounts.get("/users/alice")).hasValue(1);
     }
 
