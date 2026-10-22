@@ -31,6 +31,9 @@ public class ActivityHandler {
     }
 
     private void handleFollow(IncomingActivity follow) {
+        if (follow.id() == null) {
+            throw new InvalidActivityException("Follow has no id");
+        }
         if (!federationProperties.actorId().equals(follow.object())) {
             return;
         }
