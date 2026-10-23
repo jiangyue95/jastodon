@@ -47,6 +47,18 @@ public class DeliveryRepository {
                 .list();
     }
 
+    void markDelivered(long id) {
+        jdbcClient.sql("""
+                       UPDATE deliveries
+                       SET status = :status,
+                           attempts = attempts + 1
+                       WHERE id = :id
+                       """)
+                .param("status", DeliveryStatus.DELIVERED.name())
+                .param("id", id)
+                .update();
+    }
+
     private static Delivery mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Delivery(
                 rs.getLong("id"),
