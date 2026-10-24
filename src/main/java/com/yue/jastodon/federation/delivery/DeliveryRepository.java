@@ -59,6 +59,20 @@ public class DeliveryRepository {
                 .update();
     }
 
+    void scheduleRetry(long id, String error, Instant nextAttemptAt) {
+        jdbcClient.sql("""
+                       UPDATE deliveries
+                       SET attempts = attempts + 1,
+                           last_error = :error,
+                           next_attempt_at = :nextAttemptAt
+                       WHERE id = :id
+                       """)
+                .param("error", error)
+                .param("nextAttemptAt", nextAttemptAt.atOffset(ZoneOffset.UTC))
+                .param("id", id)
+                .update();
+    }
+
     private static Delivery mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Delivery(
                 rs.getLong("id"),

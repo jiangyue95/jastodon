@@ -16,6 +16,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DeliveryRepositoryTest extends AbstractIntegrationTest {
 
     private static final Instant NOW = Instant.parse("2026-10-07T10:00:00Z");
+    private static final Instant LATER = Instant.parse("2026-10-07T11:00:00Z");
+    private static final String ERROR =
+            "Unexpected status 503 SERVICE_UNAVAILABLE from https://remote.test/users/alice/inbox";
     private static final URI INBOX = URI.create("https://remote.test/users/alice/inbox");
     private static final String BODY = """
             {
@@ -62,5 +65,22 @@ class DeliveryRepositoryTest extends AbstractIntegrationTest {
                 .singleRow())
                 .containsEntry("status", "DELIVERED")
                 .containsEntry("attempts", 1);
+    }
+
+    @Test
+    void retriedDeliveryIsDueAgainAtItsNextAttempt() {
+        long id = deliveryRepository.enqueue(INBOX, BODY, NOW);
+        deliveryRepository.scheduleRetry(id, ERROR, LATER);
+
+        assertThat(deliveryRepository.findDue(NOW)).isEmpty();
+        assertThat(deliveryRepository.findDue(LATER)).containsExactly(new Delivery(
+                id,
+                INBOX,
+                BODY,
+                DeliveryStatus.PENDING,
+                1,
+                LATER,
+                ERROR,
+                NOW));
     }
 }
