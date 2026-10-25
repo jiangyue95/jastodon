@@ -1,5 +1,6 @@
 package com.yue.jastodon.federation.remote;
 
+import com.yue.jastodon.federation.signature.HttpSignatureSigner;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -16,10 +17,15 @@ public class ActivityPubClient {
 
     private final RestClient restClient;
     private final OutboundUrlPolicy outboundUrlPolicy;
+    private final HttpSignatureSigner signer;
 
-    public ActivityPubClient(RestClient federationRestClient, OutboundUrlPolicy outboundUrlPolicy) {
+    public ActivityPubClient(
+            RestClient federationRestClient,
+            OutboundUrlPolicy outboundUrlPolicy,
+            HttpSignatureSigner signer) {
         this.restClient = federationRestClient;
         this.outboundUrlPolicy = outboundUrlPolicy;
+        this.signer = signer;
     }
 
     public <T> T get(URI url, Class<T> type) {

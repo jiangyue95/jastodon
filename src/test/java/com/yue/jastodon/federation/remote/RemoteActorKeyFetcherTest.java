@@ -2,6 +2,7 @@ package com.yue.jastodon.federation.remote;
 
 import com.sun.net.httpserver.HttpServer;
 import com.yue.jastodon.TestKeys;
+import com.yue.jastodon.federation.signature.HttpSignatureSigner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 class RemoteActorKeyFetcherTest {
 
@@ -92,7 +94,8 @@ class RemoteActorKeyFetcherTest {
                 new ActivityPubClient(new FederationClientConfiguration().federationRestClient(),
                 uri -> {
                     throw new UnsafeRemoteUrlException("blocked by test policy");
-                }));
+                },
+                        mock(HttpSignatureSigner.class)));
 
         assertThatThrownBy(() -> fetcher.fetch(keyId))
                 .isInstanceOf(RemoteFetchException.class)
@@ -185,6 +188,8 @@ class RemoteActorKeyFetcherTest {
 
     private static RemoteActorKeyFetcher fetcherAllowingEverything() {
         return new RemoteActorKeyFetcher(new ActivityPubClient(
-                new FederationClientConfiguration().federationRestClient(), uri -> {}));
+                new FederationClientConfiguration().federationRestClient(),
+                uri -> {},
+                mock(HttpSignatureSigner.class)));
     }
 }
