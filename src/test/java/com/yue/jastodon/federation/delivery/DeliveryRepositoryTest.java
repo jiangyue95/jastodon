@@ -83,4 +83,19 @@ class DeliveryRepositoryTest extends AbstractIntegrationTest {
                 ERROR,
                 NOW));
     }
+
+    @Test
+    void failedDeliveryIsNoLongerDueAndKeepsItsError() {
+        long id = deliveryRepository.enqueue(INBOX, BODY, NOW);
+        deliveryRepository.markFailed(id, ERROR);
+
+        assertThat(deliveryRepository.findDue(NOW)).isEmpty();
+        assertThat(jdbcClient.sql("SELECT status, attempts, last_error FROM deliveries WHERE id = :id")
+                .param("id", id)
+                .query()
+                .singleRow())
+                .containsEntry("status", "FAILED")
+                .containsEntry("attempts", 1)
+                .containsEntry("last_error", ERROR);
+    }
 }

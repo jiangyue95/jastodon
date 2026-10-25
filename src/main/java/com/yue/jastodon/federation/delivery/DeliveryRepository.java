@@ -73,6 +73,20 @@ public class DeliveryRepository {
                 .update();
     }
 
+    void markFailed(long id, String error) {
+        jdbcClient.sql("""
+                       UPDATE deliveries
+                       SET status = :status,
+                           attempts = attempts + 1,
+                           last_error = :error
+                       WHERE id = :id
+                       """)
+                .param("status", DeliveryStatus.FAILED.name())
+                .param("error", error)
+                .param("id", id)
+                .update();
+    }
+
     private static Delivery mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Delivery(
                 rs.getLong("id"),
