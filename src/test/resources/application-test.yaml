@@ -9,3 +9,5 @@ spring:
 jastodon:
   federation:
     base-url: https://jastodon.test
+  delivery:
+    enabled: false
