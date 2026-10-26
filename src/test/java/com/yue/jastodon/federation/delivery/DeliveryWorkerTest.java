@@ -1,6 +1,8 @@
 package com.yue.jastodon.federation.delivery;
 
 import com.yue.jastodon.federation.remote.ActivityPubClient;
+import com.yue.jastodon.federation.remote.RemoteFetchException;
+import com.yue.jastodon.federation.remote.UnsafeRemoteUrlException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatusCode;
 
@@ -65,6 +67,46 @@ class DeliveryWorkerTest {
         verify(repository).markFailed(
                 42,
                 "Unexpected status 503 SERVICE_UNAVAILABLE from https://remote.test/users/alice/inbox");
+    }
+
+    @Test
+    void givesUpOnPermanentFailure() {
+        when(repository.findDue(NOW)).thenReturn(List.of(pending(42, 0)));
+        when(client.post(eq(INBOX), aryEq(BODY_BYTES))).thenReturn(HttpStatusCode.valueOf(404));
+
+        worker.deliverDue();
+
+        verify(repository).markFailed(
+                42,
+                "Unexpected status 404 NOT_FOUND from https://remote.test/users/alice/inbox");
+    }
+
+    @Test
+    void schedulesRetryWhenInboxCannotBeReached() {
+        when(repository.findDue(NOW)).thenReturn(List.of(pending(42, 2)));
+        when(client.post(eq(INBOX), aryEq(BODY_BYTES)))
+                .thenThrow(new RemoteFetchException("Cannot deliver to https://remote.test/users/alice/inbox"));
+
+        worker.deliverDue();
+
+        verify(repository).scheduleRetry(
+                42,
+                "Cannot deliver to https://remote.test/users/alice/inbox",
+                Instant.parse("2026-10-07T10:04:00Z"));
+    }
+
+    @Test
+    void givesUpOnUnsafeInbox() {
+        when(repository.findDue(NOW)).thenReturn(List.of(pending(42, 0)));
+        when(client.post(eq(INBOX), aryEq(BODY_BYTES)))
+                .thenThrow(new UnsafeRemoteUrlException(
+                        "URL resolves to a non-public address: https://remote.test/users/alice/inbox"));
+
+        worker.deliverDue();
+
+        verify(repository).markFailed(
+                42,
+                "URL resolves to a non-public address: https://remote.test/users/alice/inbox");
     }
 
     private static Delivery pending(long id, int attempts) {
