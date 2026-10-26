@@ -4,6 +4,7 @@ import com.yue.jastodon.federation.remote.ActivityPubClient;
 import com.yue.jastodon.federation.remote.RemoteFetchException;
 import com.yue.jastodon.federation.remote.UnsafeRemoteUrlException;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatusCode;
 
 import java.net.URI;
@@ -15,6 +16,7 @@ import java.util.List;
 
 import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -107,6 +109,17 @@ class DeliveryWorkerTest {
         verify(repository).markFailed(
                 42,
                 "URL resolves to a non-public address: https://remote.test/users/alice/inbox");
+    }
+
+    @Test
+    void oneUnexpectedFailureDoesNotStopTheOtherDeliveries() {
+        when(repository.findDue(NOW)).thenReturn(List.of(pending(1, 0), pending(2, 0)));
+        when(client.post(eq(INBOX), aryEq(BODY_BYTES))).thenReturn(HttpStatusCode.valueOf(202));
+        doThrow(new DataAccessResourceFailureException("database went away")).when(repository).markDelivered(1);
+
+        worker.deliverDue();
+
+        verify(repository).markDelivered(2);
     }
 
     private static Delivery pending(long id, int attempts) {

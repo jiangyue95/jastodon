@@ -3,6 +3,8 @@ package com.yue.jastodon.federation.delivery;
 import com.yue.jastodon.federation.remote.ActivityPubClient;
 import com.yue.jastodon.federation.remote.RemoteFetchException;
 import com.yue.jastodon.federation.remote.UnsafeRemoteUrlException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 
@@ -13,6 +15,8 @@ import java.util.Optional;
 
 @Component
 class DeliveryWorker {
+
+    private static final Logger log = LoggerFactory.getLogger(DeliveryWorker.class);
 
     private final Clock clock;
     private final DeliveryRepository deliveryRepository;
@@ -33,7 +37,13 @@ class DeliveryWorker {
     void deliverDue() {
         Instant now = clock.instant();
         for (Delivery delivery : deliveryRepository.findDue(now)) {
-            deliver(delivery, now);
+            try {
+                deliver(delivery, now);
+            } catch (RuntimeException e) {
+                log.error(
+                        "Delivery {} to {} failed unexpectedly and stays pending", delivery.id(), delivery.inbox(), e);
+            }
+
         }
     }
 
