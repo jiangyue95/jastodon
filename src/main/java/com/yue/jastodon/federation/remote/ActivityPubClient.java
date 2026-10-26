@@ -1,6 +1,9 @@
 package com.yue.jastodon.federation.remote;
 
 import com.yue.jastodon.federation.signature.HttpSignatureSigner;
+import com.yue.jastodon.federation.signature.SignatureHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -47,6 +50,24 @@ public class ActivityPubClient {
                     }).body(type);
         } catch (RestClientException e) {
             throw new RemoteFetchException("Cannot fetch " + url, e);
+        }
+    }
+
+    public HttpStatusCode post(URI inbox, byte[] body) {
+        outboundUrlPolicy.check(inbox);
+        SignatureHeaders headers = signer.sign(HttpMethod.POST, inbox, body);
+
+        try {
+            return restClient.post()
+                    .uri(inbox)
+                    .contentType(ACTIVITY_JSON)
+                    .header("Date", headers.date())
+                    .header("Digest", headers.digest())
+                    .header("Signature", headers.signature())
+                    .body(body)
+                    .exchange((request, response) -> response.getStatusCode());
+        } catch (RestClientException e) {
+            throw new RemoteFetchException("Cannot deliver to " + inbox, e);
         }
     }
 }
