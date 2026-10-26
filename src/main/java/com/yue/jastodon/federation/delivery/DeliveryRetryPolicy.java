@@ -1,6 +1,7 @@
 package com.yue.jastodon.federation.delivery;
 
 import org.springframework.http.HttpStatusCode;
+import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+@Component
 class DeliveryRetryPolicy {
 
     private static final List<Duration> DELAYS = List.of(

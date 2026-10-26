@@ -1,0 +1,55 @@
+package com.yue.jastodon.federation.delivery;
+
+import com.yue.jastodon.federation.remote.ActivityPubClient;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.Optional;
+
+@Component
+class DeliveryWorker {
+
+    private final Clock clock;
+    private final DeliveryRepository deliveryRepository;
+    private final ActivityPubClient activityPubClient;
+    private final DeliveryRetryPolicy deliveryRetryPolicy;
+
+    DeliveryWorker(
+            Clock clock,
+            DeliveryRepository deliveryRepository,
+            ActivityPubClient activityPubClient,
+            DeliveryRetryPolicy deliveryRetryPolicy) {
+        this.clock = clock;
+        this.deliveryRepository = deliveryRepository;
+        this.activityPubClient = activityPubClient;
+        this.deliveryRetryPolicy = deliveryRetryPolicy;
+    }
+
+    void deliverDue() {
+        Instant now = clock.instant();
+        for (Delivery delivery : deliveryRepository.findDue(now)) {
+            deliver(delivery, now);
+        }
+    }
+
+    private void deliver(Delivery delivery, Instant now) {
+        byte[] body = delivery.body().getBytes(StandardCharsets.UTF_8);
+        HttpStatusCode status = activityPubClient.post(delivery.inbox(), body);
+        if (status.is2xxSuccessful()) {
+            deliveryRepository.markDelivered(delivery.id());
+            return;
+        }
+
+        String error = "Unexpected status " + status + " from " + delivery.inbox();
+
+        Optional<Instant> nextAttemptAt = deliveryRetryPolicy.nextAttemptAt(delivery.attempts() + 1, now);
+        if (nextAttemptAt.isPresent()) {
+            deliveryRepository.scheduleRetry(delivery.id(), error, nextAttemptAt.get());
+        } else {
+            deliveryRepository.markFailed(delivery.id(), error);
+        }
+    }
+}
