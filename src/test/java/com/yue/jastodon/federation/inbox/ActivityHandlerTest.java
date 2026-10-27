@@ -1,6 +1,7 @@
 package com.yue.jastodon.federation.inbox;
 
 import com.yue.jastodon.AbstractIntegrationTest;
+import com.yue.jastodon.federation.delivery.DeliveryRepository;
 import com.yue.jastodon.federation.follower.Follower;
 import com.yue.jastodon.federation.follower.FollowerRepository;
 import com.yue.jastodon.federation.remote.RemoteActor;
@@ -10,15 +11,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -35,10 +42,10 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     ActivityHandler activityHandler;
 
     @Autowired
-    FollowerRepository followerRepository;
+    JdbcClient jdbcClient;
 
     @Autowired
-    JdbcClient jdbcClient;
+    JsonMapper jsonMapper;
 
     @MockitoBean
     RemoteActorFetcher remoteActorFetcher;
@@ -46,9 +53,16 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     @MockitoBean
     Clock clock;
 
+    @MockitoSpyBean
+    DeliveryRepository deliveryRepository;
+
+    @MockitoSpyBean
+    FollowerRepository followerRepository;
+
     @BeforeEach
     void setUp() {
         jdbcClient.sql("DELETE FROM followers").update();
+        jdbcClient.sql("DELETE FROM deliveries").update();
         when(remoteActorFetcher.fetch(ALICE)).thenReturn(new RemoteActor(ALICE, ALICE_INBOX));
         when(clock.instant()).thenReturn(NOW);
     }
@@ -94,4 +108,49 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
         assertThat(followerRepository.findAll()).isEmpty();
         verifyNoInteractions(remoteActorFetcher);
     }
- }
+
+    @Test
+    void followEnqueuesAnAcceptToTheFollowersInbox() {
+        activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, YUE));
+
+        Map<String, Object> delivery = jdbcClient.sql("SELECT inbox, body FROM deliveries")
+                .query()
+                .singleRow();
+
+        assertThat(delivery).containsEntry("inbox", ALICE_INBOX.toString());
+        assertThat(jsonMapper.readTree((String) delivery.get("body"))).isEqualTo(jsonMapper.readTree("""
+                {
+                  "@context": "https://www.w3.org/ns/activitystreams",
+                  "id": "https://jastodon.test/users/yue#accepts/follows/e534a88167429ce6497473a846acf3915cf9b6148afd215a9590a55078bbd9cb",
+                  "type": "Accept",
+                  "actor": "https://jastodon.test/users/yue",
+                  "object": {
+                    "id": "https://remote.test/activities/follow-1",
+                    "type": "Follow",
+                    "actor": "https://remote.test/users/alice",
+                    "object": "https://jastodon.test/users/yue"
+                  }
+                }
+                """));
+    }
+
+    @Test
+    void followIsNotStoredWhenTheAcceptCannotBeEnqueued() {
+        doThrow(new DataAccessResourceFailureException("database went away"))
+                .when(deliveryRepository).enqueue(any(), any(), any());
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, YUE)))
+                .isInstanceOf(DataAccessResourceFailureException.class);
+        assertThat(followerRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void acceptIsNotEnqueuedWhenTheFollowerCannotBeStored() {
+        doThrow(new DataAccessResourceFailureException("database went away"))
+                .when(followerRepository).save(any());
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, YUE)))
+                .isInstanceOf(DataAccessResourceFailureException.class);
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM deliveries").query(Long.class).single()).isZero();
+    }
+}
