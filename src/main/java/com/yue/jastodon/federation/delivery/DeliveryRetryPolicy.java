@@ -1,5 +1,6 @@
 package com.yue.jastodon.federation.delivery;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +36,8 @@ class DeliveryRetryPolicy {
     }
 
     boolean isRetryable(HttpStatusCode status) {
-        return status.is5xxServerError() || RETRYABLE_CLIENT_ERRORS.contains(status.value());
+        boolean temporaryServerError =
+                status.is5xxServerError() && status.value() != HttpStatus.NOT_IMPLEMENTED.value();
+        return temporaryServerError || RETRYABLE_CLIENT_ERRORS.contains(status.value());
     }
 }

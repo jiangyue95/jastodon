@@ -38,7 +38,7 @@ class DeliveryRetryPolicyTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {400, 403, 404, 410, 422, 302})
+    @ValueSource(ints = {400, 403, 404, 410, 422, 302, 501})
     void givesUpOnPermanentFailures(int status) {
         assertThat(policy.isRetryable(HttpStatusCode.valueOf(status))).isFalse();
     }
