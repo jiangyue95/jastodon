@@ -4,6 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.io.Resource;
 
 import java.net.URI;
+import java.util.UUID;
 
 @ConfigurationProperties(prefix = "jastodon.federation")
 public record FederationProperties(String username, URI baseUrl, Resource privateKeyLocation) {
@@ -38,6 +39,13 @@ public record FederationProperties(String username, URI baseUrl, Resource privat
 
     public URI keyId() {
         return URI.create(actorId() + "#main-key");
+    }
+
+    public URI noteId(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Note id must not be null");
+        }
+        return URI.create(actorId() + "/statuses/" + id);
     }
 
     private static boolean isOrigin(URI uri) {
