@@ -13,6 +13,7 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 class NoteServiceTest extends AbstractIntegrationTest {
@@ -44,5 +45,14 @@ class NoteServiceTest extends AbstractIntegrationTest {
                 "hello",
                 Instant.parse("2026-10-07T10:00:00.123456Z")));
         assertThat(noteRepository.findAll()).containsExactly(created);
+    }
+
+    @Test
+    void rejectsBlankContentAndStoresNothing() {
+        assertThatThrownBy(() -> noteService.create("  "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Note content must not be blank");
+
+        assertThat(noteRepository.findAll()).isEmpty();
     }
 }
