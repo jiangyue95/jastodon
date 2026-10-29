@@ -23,19 +23,19 @@ class NoteDocumentTest {
     @Test
     void serialisesLikeMastodonNote() {
         JsonMapper jsonMapper = JsonMapper.builder().build();
-        Note note = new Note(ID, "a < b \nc", Instant.parse("2026-10-07T10:00:00Z"));
+        Note note = new Note(ID, "a < b\nc", Instant.parse("2026-10-07T10:00:00Z"));
 
         String json = jsonMapper.writeValueAsString(NoteDocument.of(note, federation));
 
         assertThat(jsonMapper.readTree(json)).isEqualTo(jsonMapper.readTree("""
                 {
                   "@context": "https://www.w3.org/ns/activitystreams",
-                  "id": "https://jastodon.test/users/yue/status/0e1f6a3c-5b2d-4c8e-9a7f-1d2e3c4b5a69",
+                  "id": "https://jastodon.test/users/yue/statuses/0e1f6a3c-5b2d-4c8e-9a7f-1d2e3c4b5a69",
                   "type": "Note",
                   "attributedTo": "https://jastodon.test/users/yue",
                   "content": "<p>a &lt; b<br />c</p>",
                   "published": "2026-10-07T10:00:00Z",
-                  
+                  "to": ["https://www.w3.org/ns/activitystreams#Public"]
                 }
                 """));
     }

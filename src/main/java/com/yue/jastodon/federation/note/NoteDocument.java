@@ -16,7 +16,16 @@ record NoteDocument(
         Instant published,
         List<URI> to) {
 
+    private static final URI PUBLIC = URI.create("https://www.w3.org/ns/activitystreams#Public");
+
     static NoteDocument of(Note note, FederationProperties federation) {
-        return null;
+        return new NoteDocument(
+                "https://www.w3.org/ns/activitystreams",
+                federation.noteId(note.id()),
+                "Note",
+                federation.actorId(),
+                NoteContentRenderer.render(note.content()),
+                note.published(),
+                List.of(PUBLIC));
     }
 }
