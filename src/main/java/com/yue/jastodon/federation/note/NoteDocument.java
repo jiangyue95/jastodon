@@ -17,10 +17,11 @@ record NoteDocument(
         List<URI> to) {
 
     private static final URI PUBLIC = URI.create("https://www.w3.org/ns/activitystreams#Public");
+    private static final String ACTIVITY_STREAMS_CONTEXT = "https://www.w3.org/ns/activitystreams";
 
     static NoteDocument of(Note note, FederationProperties federation) {
         return new NoteDocument(
-                "https://www.w3.org/ns/activitystreams",
+                ACTIVITY_STREAMS_CONTEXT,
                 federation.noteId(note.id()),
                 "Note",
                 federation.actorId(),
