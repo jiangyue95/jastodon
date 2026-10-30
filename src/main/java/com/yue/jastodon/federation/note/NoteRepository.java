@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -38,6 +39,17 @@ class NoteRepository {
                               """)
                 .query(NoteRepository::mapRow)
                 .list();
+    }
+
+    Optional<Note> findById(UUID id) {
+        return jdbcClient.sql("""
+                              SELECT id, content, published
+                              FROM notes
+                              WHERE id = :id
+                              """)
+                .param("id", id)
+                .query(NoteRepository::mapRow)
+                .optional();
     }
 
     private static Note mapRow(ResultSet rs, int rowNum) throws SQLException {

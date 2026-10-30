@@ -19,8 +19,9 @@ public class SecurityConfig {
             HttpSecurity http, FederationProperties federationProperties) throws Exception {
         http.securityMatcher(
                 "/.well-known/webfinger",
-                        federationProperties.actorId().getPath(),
-                        federationProperties.inbox().getPath())
+                federationProperties.actorId().getPath(),
+                federationProperties.inbox().getPath(),
+                federationProperties.actorId().getPath() + "/statuses/*")
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
