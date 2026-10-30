@@ -34,7 +34,7 @@ class NoteIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void servesAStoredNoted() {
+    void servesAStoredNote() {
         client.get().uri("/users/yue/statuses/0e1f6a3c-5b2d-4c8e-9a7f-1d2e3c4b5a69")
                 .exchange()
                 .expectStatus().isOk()
@@ -42,7 +42,7 @@ class NoteIntegrationTest extends AbstractIntegrationTest {
                 .expectBody()
                 .jsonPath("$['@context']").isEqualTo("https://www.w3.org/ns/activitystreams")
                 .jsonPath("$.id").isEqualTo(
-                        "https://localhost:8443/users/yue/statuses/0e1f6a3c-5b2d-4c8e-9a7f-1d2e3c4b5a69")
+                        "https://jastodon.test/users/yue/statuses/0e1f6a3c-5b2d-4c8e-9a7f-1d2e3c4b5a69")
                 .jsonPath("$.type").isEqualTo("Note")
                 .jsonPath("$.attributedTo").isEqualTo("https://jastodon.test/users/yue")
                 .jsonPath("$.content").isEqualTo("<p>a &lt; b<br />c</p>")
@@ -80,7 +80,7 @@ class NoteIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void subPathsOfANoteAreNotPublic() {
-        client.get().uri("/users/yue/statuses/0e1f6a3c-5b2d-4c8e-9a7f-1d2e3c4b5a69")
+        client.get().uri("/users/yue/statuses/0e1f6a3c-5b2d-4c8e-9a7f-1d2e3c4b5a69/edit")
                 .exchange()
                 .expectStatus().isFound();
     }
