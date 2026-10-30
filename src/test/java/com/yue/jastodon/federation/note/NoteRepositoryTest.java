@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.not;
 
 @SpringBootTest
 class NoteRepositoryTest extends AbstractIntegrationTest {
@@ -64,5 +65,22 @@ class NoteRepositoryTest extends AbstractIntegrationTest {
         assertThatThrownBy(() -> noteRepository.save(duplicate))
                 .isInstanceOf(DuplicateKeyException.class)
                 .hasMessageContaining("notes_pkey");
+    }
+
+    @Test
+    void findsNoteById() {
+        Note wanted = new Note(ID, CONTENT, EARLIER);
+        Note other = new Note(OTHER_ID, CONTENT, LATER);
+        noteRepository.save(other);
+        noteRepository.save(wanted);
+
+        assertThat(noteRepository.findById(ID)).contains(wanted);
+    }
+
+    @Test
+    void findNothingForAnUnknownId() {
+        noteRepository.save(new Note(ID, CONTENT, EARLIER));
+
+        assertThat(noteRepository.findById(OTHER_ID)).isEmpty();
     }
 }
