@@ -42,7 +42,14 @@ class NoteRepository {
     }
 
     Optional<Note> findById(UUID id) {
-        return null;
+        return jdbcClient.sql("""
+                              SELECT id, content, published
+                              FROM notes
+                              WHERE id = :id
+                              """)
+                .param("id", id)
+                .query(NoteRepository::mapRow)
+                .optional();
     }
 
     private static Note mapRow(ResultSet rs, int rowNum) throws SQLException {
