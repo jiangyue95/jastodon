@@ -15,14 +15,16 @@ record CreateNote(
         List<URI> to,
         NoteDocument object) {
 
+    private static final String ACTIVITY_STREAMS_CONTEXT = "https://www.w3.org/ns/activitystreams";
+
     static CreateNote of(NoteDocument note) {
         return new CreateNote(
-                note.context(),
-                null,
+                ACTIVITY_STREAMS_CONTEXT,
+                URI.create(note.id() + "/activity"),
                 "Create",
-                null,
-                null,
-                null,
-                null);
+                note.attributedTo(),
+                note.published(),
+                note.to(),
+                note.withoutContext());
     }
 }
