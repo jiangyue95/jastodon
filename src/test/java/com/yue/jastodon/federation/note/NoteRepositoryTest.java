@@ -78,7 +78,7 @@ class NoteRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void findNothingForAnUnknownId() {
+    void findsNothingForAnUnknownId() {
         noteRepository.save(new Note(ID, CONTENT, EARLIER));
 
         assertThat(noteRepository.findById(OTHER_ID)).isEmpty();
