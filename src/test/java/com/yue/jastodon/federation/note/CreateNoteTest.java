@@ -47,4 +47,14 @@ class CreateNoteTest {
                 }
                 """));
     }
+
+    @Test
+    void keepsItsOwnContextWhenTheNoteHasNone() {
+        Note note = new Note(ID, "a", Instant.parse("2026-10-07T10:00:00Z"));
+        NoteDocument embedded = NoteDocument.of(note, federation).withoutContext();
+
+        CreateNote create = CreateNote.of(embedded);
+
+        assertThat(create.context()).isEqualTo("https://www.w3.org/ns/activitystreams");
+    }
 }
