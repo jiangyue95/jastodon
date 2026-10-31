@@ -5,6 +5,7 @@ import com.yue.jastodon.federation.delivery.DeliveryRepository;
 import com.yue.jastodon.federation.follower.Follower;
 import com.yue.jastodon.federation.follower.FollowerRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.IdGenerator;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -39,6 +40,7 @@ class NoteService {
         this.jsonMapper = jsonMapper;
     }
 
+    @Transactional
     Note create(String content) {
         Note note = new Note(idGenerator.generateId(), content, clock.instant().truncatedTo(ChronoUnit.MICROS));
         noteRepository.save(note);
