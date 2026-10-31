@@ -15,6 +15,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
@@ -113,6 +114,18 @@ class NoteServiceTest extends AbstractIntegrationTest {
                           }
                         }
                         """)));
+    }
+
+    @Test
+    void enqueuedCreateIsDueImmediately() {
+        followerRepository.save(follower("alice"));
+
+        noteService.create("hello");
+
+        OffsetDateTime nextAttemptAt = jdbcClient.sql("SELECT next_attempt_at FROM deliveries")
+                .query((rs, rowNum) -> rs.getObject("next_attempt_at", OffsetDateTime.class))
+                .single();
+        assertThat(nextAttemptAt.toInstant()).isEqualTo(Instant.parse("2026-10-07T10:00:00.123456Z"));
     }
 
     private static Follower follower(String name) {
