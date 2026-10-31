@@ -2,6 +2,7 @@ package com.yue.jastodon.federation.note;
 
 import com.yue.jastodon.federation.FederationProperties;
 import com.yue.jastodon.federation.delivery.DeliveryRepository;
+import com.yue.jastodon.federation.follower.Follower;
 import com.yue.jastodon.federation.follower.FollowerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.util.IdGenerator;
@@ -41,6 +42,11 @@ class NoteService {
     Note create(String content) {
         Note note = new Note(idGenerator.generateId(), content, clock.instant().truncatedTo(ChronoUnit.MICROS));
         noteRepository.save(note);
+
+        String body = jsonMapper.writeValueAsString(CreateNote.of(NoteDocument.of(note, federationProperties)));
+        for (Follower follower : followerRepository.findAll()) {
+            deliveryRepository.enqueue(follower.inbox(), body, note.published());
+        }
         return note;
     }
 }

@@ -97,19 +97,19 @@ class NoteServiceTest extends AbstractIntegrationTest {
         assertThat(jdbcClient.sql("SELECT body FROM deliveries").query(String.class).list())
                 .allSatisfy(body -> assertThat(jsonMapper.readTree(body)).isEqualTo(jsonMapper.readTree("""
                         {
-                          "@context": "https://www.w3.org/ns/activitystreams#public",
+                          "@context": "https://www.w3.org/ns/activitystreams",
                           "id": "https://jastodon.test/users/yue/statuses/0e1f6a3c-5b2d-4c8e-9a7f-1d2e3c4b5a69/activity",
                           "type": "Create",
                           "actor": "https://jastodon.test/users/yue",
                           "published": "2026-10-07T10:00:00.123456Z",
-                          "to": ["https://www.w3.org/ns/activitystreams#public"],
+                          "to": ["https://www.w3.org/ns/activitystreams#Public"],
                           "object": {
                             "id": "https://jastodon.test/users/yue/statuses/0e1f6a3c-5b2d-4c8e-9a7f-1d2e3c4b5a69",
                             "type": "Note",
                             "attributedTo": "https://jastodon.test/users/yue",
                             "content": "<p>hello</p>",
                             "published": "2026-10-07T10:00:00.123456Z",
-                            "to": ["https://www.w3.org/ns/activitystreams#public"]
+                            "to": ["https://www.w3.org/ns/activitystreams#Public"]
                           }
                         }
                         """)));
