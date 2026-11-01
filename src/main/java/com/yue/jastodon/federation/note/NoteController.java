@@ -5,6 +5,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
@@ -15,10 +17,13 @@ class NoteController {
 
     private final FederationProperties federationProperties;
     private final NoteRepository noteRepository;
+    private final NoteService noteService;
 
-    NoteController(FederationProperties federationProperties, NoteRepository noteRepository) {
+    NoteController(FederationProperties federationProperties, NoteRepository noteRepository, NoteService noteService) {
         this.federationProperties = federationProperties;
         this.noteRepository = noteRepository;
+        this.noteService = noteService;
+
     }
 
     @GetMapping("/users/{username}/statuses/{id}")
@@ -40,6 +45,16 @@ class NoteController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("application/activity+json"))
                 .body(NoteDocument.of(note.get(), federationProperties));
+    }
+
+    @PostMapping("/notes")
+    ResponseEntity<NoteDocument> create(@RequestBody NoteRequest request) {
+        Note note = noteService.create(request.content());
+        NoteDocument document = NoteDocument.of(note, federationProperties);
+
+        return ResponseEntity.created(document.id())
+                .contentType(MediaType.parseMediaType("application/activity+json"))
+                .body(document);
     }
 
     private static Optional<UUID> parseCanonical(String id) {

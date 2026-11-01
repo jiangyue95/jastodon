@@ -57,7 +57,7 @@ class NoteCreationTest extends AbstractIntegrationTest {
 
         assertThat(noteRepository.findAll()).singleElement().satisfies(note -> {
             assertThat(note.content()).isEqualTo("hello");
-            assertThat(location).isEqualTo("https://jastidon.test/users/yue/statuses/" + note.id());
+            assertThat(location).isEqualTo("https://jastodon.test/users/yue/statuses/" + note.id());
         });
     }
 
