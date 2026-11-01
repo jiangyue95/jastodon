@@ -132,4 +132,10 @@ class NoteCreationTest extends AbstractIntegrationTest {
 
         assertThat(noteRepository.findAll()).isEmpty();
     }
+
+    @Test
+    void doesNotGiveAnAnonymousVisitorACsrfToken() throws Exception {
+        mockMvc.perform(get("/csrf"))
+                .andExpect(status().is3xxRedirection());
+    }
 }
