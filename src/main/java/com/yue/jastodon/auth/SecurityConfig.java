@@ -21,6 +21,7 @@ public class SecurityConfig {
                 "/.well-known/webfinger",
                 federationProperties.actorId().getPath(),
                 federationProperties.inbox().getPath(),
+                federationProperties.outbox().getPath(),
                 federationProperties.actorId().getPath() + "/statuses/*")
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .csrf(csrf -> csrf.disable())
