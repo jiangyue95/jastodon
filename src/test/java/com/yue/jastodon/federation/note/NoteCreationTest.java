@@ -4,6 +4,8 @@ import com.jayway.jsonpath.JsonPath;
 import com.yue.jastodon.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -116,5 +118,18 @@ class NoteCreationTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(BODY))
                 .andExpect(status().isCreated());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{}", "{\"content\": \"   \"}"})
+    void rejectsBlankContent(String body) throws Exception {
+        mockMvc.perform(post("/notes")
+                .with(oauth2Login())
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+                .andExpect(status().isBadRequest());
+
+        assertThat(noteRepository.findAll()).isEmpty();
     }
 }
