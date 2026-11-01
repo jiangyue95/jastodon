@@ -49,7 +49,13 @@ class NoteController {
 
     @PostMapping("/notes")
     ResponseEntity<NoteDocument> create(@RequestBody NoteRequest request) {
-        Note note = noteService.create(request.content());
+        Note note;
+        try {
+            note = noteService.create(request.content());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+
         NoteDocument document = NoteDocument.of(note, federationProperties);
 
         return ResponseEntity.created(document.id())
