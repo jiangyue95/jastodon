@@ -201,13 +201,14 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void answers503WhenTheFollowerCannotBeFetched() {
+    void answers503WhenTheFollowerCannotBeFetched(CapturedOutput output) {
         when(remoteActorFetcher.fetch(REMOTE_ACTOR)).thenThrow(new RemoteFetchException("Unreachable"));
         byte[] body = followJson().getBytes(StandardCharsets.UTF_8);
 
         postSigned(body).expectStatus().isEqualTo(503);
 
         assertThat(followerRepository.findAll()).isEmpty();
+        assertThat(output).contains("Inbox answered 503: Cannot fetch actor https://remote.test/users/alice");
     }
 
     private RestTestClient.ResponseSpec postSigned(byte[] body) {
