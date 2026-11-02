@@ -134,14 +134,16 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void rejectsMalformedJson() {
+    void rejectsMalformedJson(CapturedOutput output) {
         byte[] body = "not json".getBytes(StandardCharsets.UTF_8);
 
         postSigned(body).expectStatus().isBadRequest();
+
+        assertThat(output).contains("Inbox answered 400: Cannot parse activity");
     }
 
     @Test
-    void rejectsActivityWithoutActor() {
+    void rejectsActivityWithoutActor(CapturedOutput output) {
         byte[] body = """
                 {
                   "id": "https://remote.test/activities/follow-3",
@@ -151,6 +153,8 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
                 """.getBytes(StandardCharsets.UTF_8);
 
         postSigned(body).expectStatus().isBadRequest();
+
+        assertThat(output).contains("Inbox answered 400: Activity has no actor");
     }
 
     @Test
