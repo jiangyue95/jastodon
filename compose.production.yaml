@@ -1,0 +1,45 @@
+name: jastodon-production
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: jastodon
+      POSTGRES_USER: jastodon
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jastodon -d jastodon"]
+      interval: 5s
+      retries: 10
+    mem_limit: 384m
+    restart: unless-stopped
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/jastodon
+      SPRING_DATASOURCE_USERNAME: jastodon
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:?GITHUB_CLIENT_ID is required}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:?GITHUB_CLIENT_SECRET is required}
+      JASTODON_FEDERATION_BASEURL: ${JASTODON_BASE_URL:?JASTODON_BASE_URL is required}
+      JASTODON_FEDERATION_PRIVATEKEYLOCATION: file:/run/secrets/actor_private_key
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
+    secrets:
+      - actor_private_key
+    ports:
+      - "127.0.0.1:8080:8080"
+    mem_limit: 768m
+    restart: unless-stopped
+
+secrets:
+  actor_private_key:
+    file: ./secrets/actor-private-key.pem
+
+volumes:
+  postgres-data:
