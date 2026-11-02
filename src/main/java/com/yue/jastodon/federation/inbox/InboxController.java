@@ -9,6 +9,8 @@ import com.yue.jastodon.federation.signature.IncomingRequest;
 import com.yue.jastodon.federation.signature.SignatureParameters;
 import com.yue.jastodon.federation.signature.SignatureVerificationException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,7 +18,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -26,6 +27,8 @@ import java.util.Map;
 
 @RestController
 public class InboxController {
+
+    private static final Logger log = LoggerFactory.getLogger(InboxController.class);
 
     private final FederationProperties federationProperties;
     private final HttpSignatureVerifier verifier;
@@ -67,17 +70,20 @@ public class InboxController {
     }
 
     @ExceptionHandler({SignatureVerificationException.class, RemoteFetchException.class})
-    ResponseEntity<Void> unauthorized() {
+    ResponseEntity<Void> unauthorized(RuntimeException e) {
+        log.warn("Inbox answered 401: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     @ExceptionHandler(RetryLaterException.class)
-    ResponseEntity<Void> retryLater() {
+    ResponseEntity<Void> retryLater(RetryLaterException e) {
+        log.warn("Inbox answered 503: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build();
     }
 
     @ExceptionHandler(InvalidActivityException.class)
-    ResponseEntity<Void> invalidActivity() {
+    ResponseEntity<Void> invalidActivity(InvalidActivityException e) {
+        log.warn("Inbox answered 400: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 
@@ -96,10 +102,10 @@ public class InboxController {
         try {
             activity = jsonMapper.readValue(body, IncomingActivity.class);
         } catch (JacksonException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot parse activity", e);
+            throw new InvalidActivityException("Cannot parse activity");
         }
         if (activity == null || activity.actor() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Activity has no actor");
+            throw new InvalidActivityException("Activity has no actor");
         }
         return activity;
     }
