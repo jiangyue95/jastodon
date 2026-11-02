@@ -1,0 +1,10 @@
+target/
+.git/
+.idea/
+.run/
+*.iml
+secrets/
+secrets.bak/
+.env
+CLAUDE.md
+AGENTS.md
