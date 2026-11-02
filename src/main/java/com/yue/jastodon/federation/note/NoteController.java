@@ -47,6 +47,17 @@ class NoteController {
                 .body(NoteDocument.of(note.get(), federationProperties));
     }
 
+    @GetMapping("/users/{username}/outbox")
+    ResponseEntity<Outbox> outbox(@PathVariable String username) {
+        if (!username.equals(federationProperties.username())) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/activity+json"))
+                .body(Outbox.of(noteRepository.findAll(), federationProperties));
+    }
+
     @PostMapping("/notes")
     ResponseEntity<NoteDocument> create(@RequestBody NoteRequest request) {
         Note note;
