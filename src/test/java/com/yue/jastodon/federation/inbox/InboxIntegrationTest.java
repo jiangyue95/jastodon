@@ -109,6 +109,8 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
         postSigned(remoteSigner(), signedBody, tamperedBody).expectStatus().isUnauthorized();
 
         assertThat(output).contains("Digest does not match the body");
+        assertThat(output).doesNotContain("\"Delete\"");
+        assertThat(output).doesNotContain("keyId=\"");
     }
 
     @Test
