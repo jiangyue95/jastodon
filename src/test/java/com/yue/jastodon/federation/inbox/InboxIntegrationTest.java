@@ -15,9 +15,12 @@ import com.yue.jastodon.federation.signature.HttpSignatureSigner;
 import com.yue.jastodon.federation.signature.SignatureHeaders;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpMethod;
@@ -37,6 +40,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureRestTestClient
+@ExtendWith(OutputCaptureExtension.class)
 class InboxIntegrationTest extends AbstractIntegrationTest {
 
     private static final String INBOX = "/users/yue/inbox";
@@ -94,6 +98,17 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
                 .getBytes(StandardCharsets.UTF_8);
 
         postSigned(remoteSigner(), signedBody, tamperedBody).expectStatus().isUnauthorized();
+    }
+
+    @Test
+    void logsWhyAnActivityWasRejected(CapturedOutput output) {
+        byte[] signedBody = followJson().getBytes(StandardCharsets.UTF_8);
+        byte[] tamperedBody = followJson().replace("\"Follow\"", "\"Delete\"")
+                .getBytes(StandardCharsets.UTF_8);
+
+        postSigned(remoteSigner(), signedBody, tamperedBody).expectStatus().isUnauthorized();
+
+        assertThat(output).contains("Digest does not match the body");
     }
 
     @Test
