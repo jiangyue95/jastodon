@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -103,10 +102,10 @@ public class InboxController {
         try {
             activity = jsonMapper.readValue(body, IncomingActivity.class);
         } catch (JacksonException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot parse activity", e);
+            throw new InvalidActivityException("Cannot parse activity");
         }
         if (activity == null || activity.actor() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Activity has no actor");
+            throw new InvalidActivityException("Activity has no actor");
         }
         return activity;
     }
