@@ -27,14 +27,29 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:?GITHUB_CLIENT_ID is required}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:?GITHUB_CLIENT_SECRET is required}
-      JASTODON_FEDERATION_BASEURL: ${JASTODON_BASE_URL:?JASTODON_BASE_URL is required}
+      JASTODON_FEDERATION_BASEURL: https://${JASTODON_DOMAIN:?JASTODON_DOMAIN is required}
       JASTODON_FEDERATION_PRIVATEKEYLOCATION: file:/run/secrets/actor_private_key
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75
+      SERVER_FORWARDHEADERSSTRATEGY: native
     secrets:
       - actor_private_key
-    ports:
-      - "127.0.0.1:8080:8080"
     mem_limit: 768m
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    depends_on:
+      - app
+    environment:
+      JASTODON_DOMAIN: ${JASTODON_DOMAIN:?JASTODON_DOMAIN is required}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    mem_limit: 128m
     restart: unless-stopped
 
 secrets:
@@ -43,3 +58,5 @@ secrets:
 
 volumes:
   postgres-data:
+  caddy-data:
+  caddy-config:
