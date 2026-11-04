@@ -1,3 +1,14 @@
 {$JASTODON_DOMAIN} {
-  reverse_proxy app:8080
+  redir /compose /compose/
+  handle_path /compose/* {
+    header {
+      X-Frame-Options DENY
+      X-Content-Type-Options nosniff
+    }
+    root * /srv/compose
+    file_server
+  }
+  handle {
+    reverse_proxy app:8080
+  }
 }

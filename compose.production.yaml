@@ -49,6 +49,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+      - ${JASTODON_FRONTEND_DIST:?JASTODON_FRONTEND_DIST is required}:/srv/compose:ro
     mem_limit: 128m
     restart: unless-stopped
 
