@@ -44,7 +44,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
-                                .userService(ownerOnlyOAuth2UserService)));
+                                .userService(ownerOnlyOAuth2UserService))
+                        .defaultSuccessUrl("/compose/", true));
         return http.build();
     }
 }
