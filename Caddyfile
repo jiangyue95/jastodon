@@ -5,6 +5,10 @@
       X-Frame-Options DENY
       X-Content-Type-Options nosniff
     }
+    @assets path /assets/*
+    @notAssets not path /assets/*
+    header @assets Cache-Control "public, max-age=31536000, immutable"
+    header @notAssets Cache-Control no-cache
     root * /srv/compose
     file_server
   }
