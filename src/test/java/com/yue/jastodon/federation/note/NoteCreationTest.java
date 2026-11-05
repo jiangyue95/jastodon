@@ -88,12 +88,12 @@ class NoteCreationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void redirectsAnAnonymousPostWithACsrfToken() throws Exception {
+    void answersUnauthorizedToAnAnonymousPostWithACsrfToken() throws Exception {
         mockMvc.perform(post("/notes")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(BODY))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isUnauthorized());
 
         assertThat(noteRepository.findAll()).isEmpty();
     }
@@ -136,6 +136,6 @@ class NoteCreationTest extends AbstractIntegrationTest {
     @Test
     void doesNotGiveAnAnonymousVisitorACsrfToken() throws Exception {
         mockMvc.perform(get("/csrf"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isUnauthorized());
     }
 }
