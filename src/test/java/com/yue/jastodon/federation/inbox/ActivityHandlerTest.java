@@ -104,7 +104,17 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     void rejectsFollowWithoutId() {
         assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(null, "Follow", ALICE, YUE)))
                 .isInstanceOf(InvalidActivityException.class)
-                .hasMessageContaining("no id");
+                .hasMessageContaining("Follow has no id");
+        assertThat(followerRepository.findAll()).isEmpty();
+        verifyNoInteractions(remoteActorFetcher);
+    }
+
+    @Test
+    void rejectsFollowWithoutObject() {
+        assertThatThrownBy(() -> activityHandler.handle(
+                new IncomingActivity(FOLLOW_ID, "Follow", ALICE, null)))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Follow has no object");
         assertThat(followerRepository.findAll()).isEmpty();
         verifyNoInteractions(remoteActorFetcher);
     }
