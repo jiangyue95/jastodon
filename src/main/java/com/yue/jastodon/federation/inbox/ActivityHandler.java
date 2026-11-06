@@ -53,10 +53,10 @@ public class ActivityHandler {
         if (follow.id() == null) {
             throw new InvalidActivityException("Follow has no id");
         }
-        if (follow.object() == null) {
-            throw new InvalidActivityException("Follow has no object");
+        if (follow.object() == null || follow.object().id() == null) {
+            throw new InvalidActivityException("Follow has no object id");
         }
-        if (!federationProperties.actorId().equals(follow.object())) {
+        if (!federationProperties.actorId().equals(follow.object().id())) {
             return;
         }
         RemoteActor actor = fetchActor(follow.actor());
