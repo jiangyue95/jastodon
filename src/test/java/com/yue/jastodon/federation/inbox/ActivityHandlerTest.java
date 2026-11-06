@@ -15,6 +15,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.testcontainers.shaded.org.checkerframework.checker.units.qual.A;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
@@ -37,6 +38,7 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     private static final URI ALICE_INBOX = URI.create("https://remote.test/users/alice/inbox");
     private static final URI FOLLOW_ID = URI.create("https://remote.test/activities/follow-1");
     private static final URI YUE = URI.create("https://jastodon.test/users/yue");
+    private static final URI UNDO_ID = URI.create("https://remote.test/activities/undo-1");
 
     @Autowired
     ActivityHandler activityHandler;
@@ -178,5 +180,31 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
         assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, ActivityObject.reference(YUE))))
                 .isInstanceOf(DataAccessResourceFailureException.class);
         assertThat(jdbcClient.sql("SELECT COUNT(*) FROM deliveries").query(Long.class).single()).isZero();
+    }
+
+    @Test
+    void undoRemoveTheFollower() {
+        followerRepository.save(new Follower(ALICE, ALICE_INBOX, FOLLOW_ID, NOW));
+
+        activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Follow", ALICE, YUE)));
+
+        assertThat(followerRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void undoByLinkRemovesTheFollower() {
+        followerRepository.save(new Follower(ALICE, ALICE_INBOX, FOLLOW_ID, NOW));
+
+        activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                ActivityObject.reference(FOLLOW_ID)));
+
+        assertThat(followerRepository.findAll()).isEmpty();
     }
 }

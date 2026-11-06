@@ -46,6 +46,8 @@ public class ActivityHandler {
     public void handle(IncomingActivity activity) {
         if ("Follow".equals(activity.type())) {
             handleFollow(activity);
+        } else if ("Undo".equals(activity.type())) {
+            handleUndo(activity);
         }
     }
 
@@ -67,6 +69,10 @@ public class ActivityHandler {
             followerRepository.save(new Follower(follow.actor(), actor.inbox(), follow.id(), now));
             deliveryRepository.enqueue(actor.inbox(), body, now);
         });
+    }
+
+    private void handleUndo(IncomingActivity undo) {
+        followerRepository.remove(undo.actor(), undo.object().id());
     }
 
     private RemoteActor fetchActor(URI actorId) {
