@@ -188,7 +188,7 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void undoRemovesTheFollower() {
+    void undoRemovesTheFollower(CapturedOutput output) {
         followerRepository.save(ALICE_FOLLOWER);
 
         activityHandler.handle(new IncomingActivity(
@@ -198,6 +198,7 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
                 new ActivityObject(FOLLOW_ID, "Follow", ALICE, YUE)));
 
         assertThat(followerRepository.findAll()).isEmpty();
+        assertThat(output).doesNotContain("Undo matched no follower");
     }
 
     @Test
