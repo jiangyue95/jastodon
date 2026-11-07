@@ -235,4 +235,17 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
                 .hasMessageContaining("Undo has no object id");
         assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
     }
+
+    @Test
+    void ignoresUndoOfOtherTypes() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Like", ALICE, YUE)));
+
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
 }

@@ -75,6 +75,9 @@ public class ActivityHandler {
         if (undo.object() == null || undo.object().id() == null) {
             throw new InvalidActivityException("Undo has no object id");
         }
+        if (undo.object().type() != null && !"Follow".equals(undo.object().type())) {
+            return;
+        }
         followerRepository.remove(undo.actor(), undo.object().id());
     }
 
