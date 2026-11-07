@@ -15,7 +15,6 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.testcontainers.shaded.org.checkerframework.checker.units.qual.A;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
@@ -39,6 +38,7 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     private static final URI FOLLOW_ID = URI.create("https://remote.test/activities/follow-1");
     private static final URI YUE = URI.create("https://jastodon.test/users/yue");
     private static final URI UNDO_ID = URI.create("https://remote.test/activities/undo-1");
+    private static final Follower ALICE_FOLLOWER = new Follower(ALICE, ALICE_INBOX, FOLLOW_ID, NOW);
 
     @Autowired
     ActivityHandler activityHandler;
@@ -183,8 +183,8 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void undoRemoveTheFollower() {
-        followerRepository.save(new Follower(ALICE, ALICE_INBOX, FOLLOW_ID, NOW));
+    void undoRemovesTheFollower() {
+        followerRepository.save(ALICE_FOLLOWER);
 
         activityHandler.handle(new IncomingActivity(
                 UNDO_ID,
@@ -197,7 +197,7 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
 
     @Test
     void undoByLinkRemovesTheFollower() {
-        followerRepository.save(new Follower(ALICE, ALICE_INBOX, FOLLOW_ID, NOW));
+        followerRepository.save(ALICE_FOLLOWER);
 
         activityHandler.handle(new IncomingActivity(
                 UNDO_ID,
@@ -206,5 +206,33 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
                 ActivityObject.reference(FOLLOW_ID)));
 
         assertThat(followerRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void rejectsUndoWithoutObject() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                null)))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Undo has no object id");
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void rejectsUndoWhoseObjectHasNoId() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(null, "Follow", ALICE, YUE))))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Undo has no object id");
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
     }
 }
