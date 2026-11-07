@@ -7,6 +7,8 @@ import com.yue.jastodon.federation.follower.FollowerRepository;
 import com.yue.jastodon.federation.remote.RemoteActor;
 import com.yue.jastodon.federation.remote.RemoteActorFetcher;
 import com.yue.jastodon.federation.remote.RemoteFetchException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
@@ -17,6 +19,8 @@ import java.time.Instant;
 
 @Component
 public class ActivityHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ActivityHandler.class);
 
     private final FederationProperties federationProperties;
     private final RemoteActorFetcher remoteActorFetcher;
@@ -92,7 +96,9 @@ public class ActivityHandler {
                 return;
             }
         }
-        followerRepository.remove(undo.actor(), undo.object().id());
+        if(!followerRepository.remove(undo.actor(), undo.object().id())) {
+            log.info("Undo matched no follower: actor={}, follow={}", undo.actor(), undo.object().id());
+        }
     }
 
     private RemoteActor fetchActor(URI actorId) {

@@ -9,8 +9,11 @@ import com.yue.jastodon.federation.remote.RemoteActorFetcher;
 import com.yue.jastodon.federation.remote.RemoteFetchException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -30,6 +33,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
+@ExtendWith(OutputCaptureExtension.class)
 class ActivityHandlerTest extends AbstractIntegrationTest {
 
     private static final Instant NOW = Instant.parse("2026-10-07T10:00:00Z");
@@ -303,5 +307,16 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
                 .isInstanceOf(InvalidActivityException.class)
                 .hasMessageContaining("Undone Follow has no object");
         assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void logsAnUndoThatMatchesNoFollower(CapturedOutput output) {
+        activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                ActivityObject.reference(FOLLOW_ID)));
+
+        assertThat(output).contains("Undo matched no follower: actor=https://remote.test/users/alice, follow=https://remote.test/activities/follow-1");
     }
 }
