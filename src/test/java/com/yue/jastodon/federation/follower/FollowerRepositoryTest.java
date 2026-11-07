@@ -99,4 +99,61 @@ class FollowerRepositoryTest extends AbstractIntegrationTest {
 
         assertThat(followerRepository.findAll()).containsExactly(alice, bob);
     }
+
+    @Test
+    void removesTheMatchingFollower() {
+        Follower alice = new Follower(
+                URI.create("https://mastodon.example/users/alice"),
+                URI.create("https://mastodon.example/users/alice/inbox"),
+                URI.create("https://mastodon.example/activities/follow-1"),
+                FIRST);
+        Follower bob = new Follower(
+                URI.create("https://mastodon.example/users/bob"),
+                URI.create("https://mastodon.example/users/bob/inbox"),
+                URI.create("https://mastodon.example/activities/follow-2"),
+                FIRST);
+        followerRepository.save(alice);
+        followerRepository.save(bob);
+
+        boolean removed = followerRepository.remove(
+                URI.create("https://mastodon.example/users/alice"),
+                URI.create("https://mastodon.example/activities/follow-1"));
+
+        assertThat(removed).isTrue();
+        assertThat(followerRepository.findAll()).containsExactly(bob);
+    }
+
+    @Test
+    void keepsTheFollowerWhenTheFollowIdDiffers() {
+        Follower alice = new Follower(
+                URI.create("https://mastodon.example/users/alice"),
+                URI.create("https://mastodon.example/users/alice/inbox"),
+                URI.create("https://mastodon.example/activities/follow-3"),
+                FIRST);
+        followerRepository.save(alice);
+
+        boolean removed = followerRepository.remove(
+                URI.create("https://mastodon.example/users/alice"),
+                URI.create("https://mastodon.example/activities/follow-1"));
+
+        assertThat(removed).isFalse();
+        assertThat(followerRepository.findAll()).containsExactly(alice);
+    }
+
+    @Test
+    void keepsAnotherActorsFollower() {
+        Follower bob = new Follower(
+                URI.create("https://mastodon.example/users/bob"),
+                URI.create("https://mastodon.example/users/bob/inbox"),
+                URI.create("https://mastodon.example/activities/follow-2"),
+                FIRST);
+        followerRepository.save(bob);
+
+        boolean removed = followerRepository.remove(
+                URI.create("https://mastodon.example/users/alice"),
+                URI.create("https://mastodon.example/activities/follow-2"));
+
+        assertThat(removed).isFalse();
+        assertThat(followerRepository.findAll()).containsExactly(bob);
+    }
 }

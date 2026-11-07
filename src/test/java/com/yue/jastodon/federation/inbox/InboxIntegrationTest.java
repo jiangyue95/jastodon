@@ -33,6 +33,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -211,6 +212,49 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
 
         assertThat(followerRepository.findAll()).isEmpty();
         assertThat(output).contains("Inbox answered 503: Cannot fetch actor https://remote.test/users/alice");
+    }
+
+    @Test
+    void signedUndoRemovesTheFollower() {
+        followerRepository.save(new Follower(
+                REMOTE_ACTOR,
+                URI.create("https://remote.test/users/alice/inbox"),
+                URI.create("https://remote.test/activities/follow-1"),
+                Instant.parse("2026-10-07T10:00:00Z")));
+
+        byte[] body = """
+                {
+                  "@context": "https://www.w3.org/ns/activitystreams",
+                  "id": "https://remote.test/activities/undo-1",
+                  "type": "Undo",
+                  "actor": "https://remote.test/users/alice",
+                  "object": {
+                    "id": "https://remote.test/activities/follow-1",
+                    "type": "Follow",
+                    "actor": "https://remote.test/users/alice",
+                    "object": "https://jastodon.test/users/yue"
+                  }
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+
+        postSigned(body).expectStatus().isAccepted();
+
+        assertThat(followerRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void rejectsUndoWithoutObject(CapturedOutput output) {
+        byte[] body = """
+                {
+                  "id": "https://remote.test/activities/undo-1",
+                  "type": "Undo",
+                  "actor": "https://remote.test/users/alice"
+                }
+                """.getBytes(StandardCharsets.UTF_8);
+
+        postSigned(body).expectStatus().isBadRequest();
+
+        assertThat(output).contains("Inbox answered 400: Undo has no object id");
     }
 
     private RestTestClient.ResponseSpec postSigned(byte[] body) {

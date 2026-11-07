@@ -9,8 +9,11 @@ import com.yue.jastodon.federation.remote.RemoteActorFetcher;
 import com.yue.jastodon.federation.remote.RemoteFetchException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -30,6 +33,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
+@ExtendWith(OutputCaptureExtension.class)
 class ActivityHandlerTest extends AbstractIntegrationTest {
 
     private static final Instant NOW = Instant.parse("2026-10-07T10:00:00Z");
@@ -37,6 +41,9 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     private static final URI ALICE_INBOX = URI.create("https://remote.test/users/alice/inbox");
     private static final URI FOLLOW_ID = URI.create("https://remote.test/activities/follow-1");
     private static final URI YUE = URI.create("https://jastodon.test/users/yue");
+    private static final URI UNDO_ID = URI.create("https://remote.test/activities/undo-1");
+    private static final Follower ALICE_FOLLOWER = new Follower(ALICE, ALICE_INBOX, FOLLOW_ID, NOW);
+    private static final URI BOB = URI.create("https://remote.test/users/bob");
 
     @Autowired
     ActivityHandler activityHandler;
@@ -69,14 +76,14 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
 
     @Test
     void followOfOurActorStoresTheFollower() {
-        activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, YUE));
+        activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, ActivityObject.reference(YUE)));
 
         assertThat(followerRepository.findAll()).containsExactly(new Follower(ALICE, ALICE_INBOX, FOLLOW_ID, NOW));
     }
 
     @Test
     void ignoresOtherActivityTypes() {
-        activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Like", ALICE, YUE));
+        activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Like", ALICE, ActivityObject.reference(YUE)));
 
         assertThat(followerRepository.findAll()).isEmpty();
         verifyNoInteractions(remoteActorFetcher);
@@ -85,7 +92,10 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     @Test
     void ignoresFollowOfSomeoneElse() {
         activityHandler.handle(new IncomingActivity(
-                FOLLOW_ID, "Follow", ALICE, URI.create("https://jastodon.test/users/bob")));
+                FOLLOW_ID,
+                "Follow",
+                ALICE,
+                ActivityObject.reference(URI.create("https://jastodon.test/users/bob"))));
 
         assertThat(followerRepository.findAll()).isEmpty();
         verifyNoInteractions(remoteActorFetcher);
@@ -95,23 +105,46 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     void followIsRetriedLaterWhenTheActorCannotBeFetched() {
         when(remoteActorFetcher.fetch(ALICE)).thenThrow(new RemoteFetchException("unreachable"));
 
-        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, YUE)))
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, ActivityObject.reference(YUE))))
                 .isInstanceOf(RetryLaterException.class);
         assertThat(followerRepository.findAll()).isEmpty();
     }
 
     @Test
     void rejectsFollowWithoutId() {
-        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(null, "Follow", ALICE, YUE)))
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(null, "Follow", ALICE, ActivityObject.reference(YUE))))
                 .isInstanceOf(InvalidActivityException.class)
-                .hasMessageContaining("no id");
+                .hasMessageContaining("Follow has no id");
+        assertThat(followerRepository.findAll()).isEmpty();
+        verifyNoInteractions(remoteActorFetcher);
+    }
+
+    @Test
+    void rejectsFollowWithoutObject() {
+        assertThatThrownBy(() -> activityHandler.handle(
+                new IncomingActivity(FOLLOW_ID, "Follow", ALICE, null)))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Follow has no object");
+        assertThat(followerRepository.findAll()).isEmpty();
+        verifyNoInteractions(remoteActorFetcher);
+    }
+
+    @Test
+    void rejectsFollowWhoseObjectHasNoId() {
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                FOLLOW_ID,
+                "Follow",
+                ALICE,
+                new ActivityObject(null, "Person", null, null))))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("no object id");
         assertThat(followerRepository.findAll()).isEmpty();
         verifyNoInteractions(remoteActorFetcher);
     }
 
     @Test
     void followEnqueuesAnAcceptToTheFollowersInbox() {
-        activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, YUE));
+        activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, ActivityObject.reference(YUE)));
 
         Map<String, Object> delivery = jdbcClient.sql("SELECT inbox, body FROM deliveries")
                 .query()
@@ -139,7 +172,7 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
         doThrow(new DataAccessResourceFailureException("database went away"))
                 .when(deliveryRepository).enqueue(any(), any(), any());
 
-        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, YUE)))
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, ActivityObject.reference(YUE))))
                 .isInstanceOf(DataAccessResourceFailureException.class);
         assertThat(followerRepository.findAll()).isEmpty();
     }
@@ -149,8 +182,142 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
         doThrow(new DataAccessResourceFailureException("database went away"))
                 .when(followerRepository).save(any());
 
-        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, YUE)))
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(FOLLOW_ID, "Follow", ALICE, ActivityObject.reference(YUE))))
                 .isInstanceOf(DataAccessResourceFailureException.class);
         assertThat(jdbcClient.sql("SELECT COUNT(*) FROM deliveries").query(Long.class).single()).isZero();
+    }
+
+    @Test
+    void undoRemovesTheFollower(CapturedOutput output) {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Follow", ALICE, YUE)));
+
+        assertThat(followerRepository.findAll()).isEmpty();
+        assertThat(output).doesNotContain("Undo matched no follower");
+    }
+
+    @Test
+    void undoByLinkRemovesTheFollower() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                ActivityObject.reference(FOLLOW_ID)));
+
+        assertThat(followerRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void rejectsUndoWithoutObject() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                null)))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Undo has no object id");
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void rejectsUndoWhoseObjectHasNoId() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(null, "Follow", ALICE, YUE))))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Undo has no object id");
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void ignoresUndoOfOtherTypes() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Like", ALICE, YUE)));
+
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void rejectsUndoOfAnotherActorsFollow() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Follow", BOB, YUE))))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Undone Follow actor does not match the Undo actor");
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void rejectsUndoWhoseFollowHasNoActor() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Follow", null, YUE))))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Undone Follow has no actor");
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void ignoresUndoOfAFollowOfSomeoneElse() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Follow", ALICE, URI.create("https://jastodon.test/users/bob"))));
+
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void rejectsUndoWhoseFollowHasNoObject() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Follow", ALICE, null))))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Undone Follow has no object");
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void logsAnUndoThatMatchesNoFollower(CapturedOutput output) {
+        activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                ActivityObject.reference(FOLLOW_ID)));
+
+        assertThat(output).contains("Undo matched no follower: actor=https://remote.test/users/alice, follow=https://remote.test/activities/follow-1");
     }
 }

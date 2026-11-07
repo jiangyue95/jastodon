@@ -7,6 +7,8 @@ import com.yue.jastodon.federation.follower.FollowerRepository;
 import com.yue.jastodon.federation.remote.RemoteActor;
 import com.yue.jastodon.federation.remote.RemoteActorFetcher;
 import com.yue.jastodon.federation.remote.RemoteFetchException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
@@ -17,6 +19,8 @@ import java.time.Instant;
 
 @Component
 public class ActivityHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(ActivityHandler.class);
 
     private final FederationProperties federationProperties;
     private final RemoteActorFetcher remoteActorFetcher;
@@ -46,6 +50,8 @@ public class ActivityHandler {
     public void handle(IncomingActivity activity) {
         if ("Follow".equals(activity.type())) {
             handleFollow(activity);
+        } else if ("Undo".equals(activity.type())) {
+            handleUndo(activity);
         }
     }
 
@@ -53,7 +59,10 @@ public class ActivityHandler {
         if (follow.id() == null) {
             throw new InvalidActivityException("Follow has no id");
         }
-        if (!federationProperties.actorId().equals(follow.object())) {
+        if (follow.object() == null || follow.object().id() == null) {
+            throw new InvalidActivityException("Follow has no object id");
+        }
+        if (!federationProperties.actorId().equals(follow.object().id())) {
             return;
         }
         RemoteActor actor = fetchActor(follow.actor());
@@ -64,6 +73,32 @@ public class ActivityHandler {
             followerRepository.save(new Follower(follow.actor(), actor.inbox(), follow.id(), now));
             deliveryRepository.enqueue(actor.inbox(), body, now);
         });
+    }
+
+    private void handleUndo(IncomingActivity undo) {
+        if (undo.object() == null || undo.object().id() == null) {
+            throw new InvalidActivityException("Undo has no object id");
+        }
+        if (undo.object().type() != null) {
+            if (!"Follow".equals(undo.object().type())) {
+                return;
+            }
+            if (undo.object().actor() == null) {
+                throw new InvalidActivityException("Undone Follow has no actor");
+            }
+            if (!undo.actor().equals(undo.object().actor())) {
+                throw new InvalidActivityException("Undone Follow actor does not match the Undo actor");
+            }
+            if (undo.object().object() == null) {
+                throw new InvalidActivityException("Undone Follow has no object");
+            }
+            if (!federationProperties.actorId().equals(undo.object().object())) {
+                return;
+            }
+        }
+        if (!followerRepository.remove(undo.actor(), undo.object().id())) {
+            log.info("Undo matched no follower: actor={}, follow={}", undo.actor(), undo.object().id());
+        }
     }
 
     private RemoteActor fetchActor(URI actorId) {

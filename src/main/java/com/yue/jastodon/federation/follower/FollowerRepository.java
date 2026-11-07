@@ -44,6 +44,18 @@ public class FollowerRepository {
                 .list();
     }
 
+    public boolean remove(URI actorId, URI followActivityId) {
+        int rows = jdbcClient.sql("""
+                                  DELETE FROM followers
+                                  WHERE actor_id = :actorId
+                                    AND follow_activity_id = :followActivityId
+                                  """)
+                .param("actorId", actorId.toString())
+                .param("followActivityId", followActivityId.toString())
+                .update();
+        return rows > 0;
+    }
+
     private static Follower mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Follower(
                 URI.create(rs.getString("actor_id")),
