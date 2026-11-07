@@ -277,4 +277,31 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
                 .hasMessageContaining("Undone Follow has no actor");
         assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
     }
+
+    @Test
+    void ignoresUndoOfAFollowOfSomeoneElse() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Follow", ALICE, URI.create("https://jastodon.test/users/bob"))));
+
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void rejectsUndoWhoseFollowHasNoObject() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Follow", ALICE, null))))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Undone Follow has no object");
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
 }

@@ -85,6 +85,12 @@ public class ActivityHandler {
             if (!undo.actor().equals(undo.object().actor())) {
                 throw new InvalidActivityException("Undone Follow actor does not match the Undo actor");
             }
+            if (undo.object().object() == null) {
+                throw new InvalidActivityException("Undone Follow has no object");
+            }
+            if (!federationProperties.actorId().equals(undo.object().object())) {
+                return;
+            }
         }
         followerRepository.remove(undo.actor(), undo.object().id());
     }
