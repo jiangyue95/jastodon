@@ -96,7 +96,7 @@ public class ActivityHandler {
                 return;
             }
         }
-        if(!followerRepository.remove(undo.actor(), undo.object().id())) {
+        if (!followerRepository.remove(undo.actor(), undo.object().id())) {
             log.info("Undo matched no follower: actor={}, follow={}", undo.actor(), undo.object().id());
         }
     }
