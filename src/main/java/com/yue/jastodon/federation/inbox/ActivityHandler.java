@@ -75,8 +75,16 @@ public class ActivityHandler {
         if (undo.object() == null || undo.object().id() == null) {
             throw new InvalidActivityException("Undo has no object id");
         }
-        if (undo.object().type() != null && !"Follow".equals(undo.object().type())) {
-            return;
+        if (undo.object().type() != null) {
+            if (!"Follow".equals(undo.object().type())) {
+                return;
+            }
+            if (undo.object().actor() == null) {
+                throw new InvalidActivityException("Undone Follow has no actor");
+            }
+            if (!undo.actor().equals(undo.object().actor())) {
+                throw new InvalidActivityException("Undone Follow actor does not match the Undo actor");
+            }
         }
         followerRepository.remove(undo.actor(), undo.object().id());
     }

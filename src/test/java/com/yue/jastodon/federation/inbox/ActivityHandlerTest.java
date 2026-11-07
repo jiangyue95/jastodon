@@ -39,6 +39,7 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     private static final URI YUE = URI.create("https://jastodon.test/users/yue");
     private static final URI UNDO_ID = URI.create("https://remote.test/activities/undo-1");
     private static final Follower ALICE_FOLLOWER = new Follower(ALICE, ALICE_INBOX, FOLLOW_ID, NOW);
+    private static final URI BOB = URI.create("https://remote.test/users/bob");
 
     @Autowired
     ActivityHandler activityHandler;
@@ -246,6 +247,34 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
                 ALICE,
                 new ActivityObject(FOLLOW_ID, "Like", ALICE, YUE)));
 
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void rejectsUndoOfAnotherActorsFollow() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Follow", BOB, YUE))))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Undone Follow actor does not match the Undo actor");
+        assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
+    }
+
+    @Test
+    void rejectsUndoWhoseFollowHasNoActor() {
+        followerRepository.save(ALICE_FOLLOWER);
+
+        assertThatThrownBy(() -> activityHandler.handle(new IncomingActivity(
+                UNDO_ID,
+                "Undo",
+                ALICE,
+                new ActivityObject(FOLLOW_ID, "Follow", null, YUE))))
+                .isInstanceOf(InvalidActivityException.class)
+                .hasMessageContaining("Undone Follow has no actor");
         assertThat(followerRepository.findAll()).containsExactly(ALICE_FOLLOWER);
     }
 }
