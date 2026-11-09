@@ -12,8 +12,10 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.zip.CRC32;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -82,6 +84,21 @@ class AvatarImageTest {
         assertThatThrownBy(() -> AvatarImage.normalise(upload))
                 .isInstanceOf(InvalidImageException.class)
                 .hasMessageContaining("Avatar must be 400x400, was " + width + "x" + height);
+    }
+
+    @Test
+    void rejectsAnOversizedHeaderBeforeDecoding() {
+        byte[] upload = image(400, 400, "png");
+        ByteBuffer bytes = ByteBuffer.wrap(upload);
+        bytes.putInt(16, 50_000);
+        bytes.putInt(20, 50_000);
+        CRC32 crc = new CRC32();
+        crc.update(upload, 12, 17);
+        bytes.putInt(29, (int) crc.getValue());
+
+        assertThatThrownBy(() -> AvatarImage.normalise(upload))
+                .isInstanceOf(InvalidImageException.class)
+                .hasMessage("Avatar must be 400x400, was 50000x50000");
     }
 
     private static byte[] image(int width, int height, String format) {
