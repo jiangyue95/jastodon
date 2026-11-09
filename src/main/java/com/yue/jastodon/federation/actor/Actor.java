@@ -14,5 +14,9 @@ public record Actor(
         URI outbox,
         PublicKey publicKey) {
 
+    Actor withoutContext() {
+        return this;
+    }
+
     public record PublicKey(URI id, URI owner, String publicKeyPem) {}
 }
