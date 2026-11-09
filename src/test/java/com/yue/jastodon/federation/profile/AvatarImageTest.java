@@ -11,6 +11,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,6 +50,27 @@ class AvatarImageTest {
         assertThatThrownBy(() -> AvatarImage.normalise(upload))
                 .isInstanceOf(InvalidImageException.class)
                 .hasMessageContaining("Avatar must be a PNG or JPEG image");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"hello", ""})
+    void rejectsBytesThatAreNotAnImage(String content) {
+        byte[] upload = content.getBytes(StandardCharsets.UTF_8);
+
+        assertThatThrownBy(() -> AvatarImage.normalise(upload))
+                .isInstanceOf(InvalidImageException.class)
+                .hasMessageContaining("Avatar must be a PNG or JPEG image");
+    }
+
+    @Test
+    void rejectsABrokenPng() {
+        byte[] png = image(400, 400, "png");
+        byte[] upload = Arrays.copyOf(png, png.length / 2);
+
+        assertThatThrownBy(() -> AvatarImage.normalise(upload))
+                .isInstanceOf(InvalidImageException.class)
+                .hasMessageContaining("Cannot read image")
+                .hasCauseInstanceOf(IOException.class);
     }
 
     private static byte[] image(int width, int height, String format) {
