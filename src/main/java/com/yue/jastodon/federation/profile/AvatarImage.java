@@ -13,6 +13,8 @@ import java.util.Iterator;
 
 final class AvatarImage {
 
+    private static final int SIZE = 400;
+
     private AvatarImage() {}
 
     static byte[] normalise(byte[] upload) {
@@ -29,6 +31,11 @@ final class AvatarImage {
                 reader.setInput(input);
                 BufferedImage image;
                 try {
+                    int width = reader.getWidth(0);
+                    int height = reader.getHeight(0);
+                    if (width != SIZE || height != SIZE) {
+                        throw new InvalidImageException("Avatar must be 400x400, was " + width + "x" + height);
+                    }
                     image = reader.read(0);
                 } catch (IOException e) {
                     throw new InvalidImageException("Cannot read image", e);

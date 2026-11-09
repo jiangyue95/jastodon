@@ -2,6 +2,7 @@ package com.yue.jastodon.federation.profile;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.imageio.ImageIO;
@@ -71,6 +72,16 @@ class AvatarImageTest {
                 .isInstanceOf(InvalidImageException.class)
                 .hasMessageContaining("Cannot read image")
                 .hasCauseInstanceOf(IOException.class);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"png, 401, 400", "png, 400, 401", "jpeg, 401, 400"})
+    void rejectsOtherSizes(String format, int width, int height) {
+        byte[] upload = image(width, height, format);
+
+        assertThatThrownBy(() -> AvatarImage.normalise(upload))
+                .isInstanceOf(InvalidImageException.class)
+                .hasMessageContaining("Avatar must be 400x400, was " + width + "x" + height);
     }
 
     private static byte[] image(int width, int height, String format) {
