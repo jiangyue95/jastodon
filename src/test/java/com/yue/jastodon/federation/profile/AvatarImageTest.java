@@ -1,6 +1,8 @@
 package com.yue.jastodon.federation.profile;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -11,6 +13,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AvatarImageTest {
 
@@ -35,6 +38,16 @@ class AvatarImageTest {
         assertThat(read).isNotNull();
         assertThat(read.getWidth()).isEqualTo(400);
         assertThat(read.getHeight()).isEqualTo(400);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"gif", "bmp", "tiff"})
+    void rejectsOtherFormats(String format) {
+        byte[] upload = image(400, 400, format);
+
+        assertThatThrownBy(() -> AvatarImage.normalise(upload))
+                .isInstanceOf(InvalidImageException.class)
+                .hasMessageContaining("Avatar must be a PNG or JPEG image");
     }
 
     private static byte[] image(int width, int height, String format) {
