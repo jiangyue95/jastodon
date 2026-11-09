@@ -101,6 +101,16 @@ class AvatarImageTest {
                 .hasMessage("Avatar must be 400x400, was 50000x50000");
     }
 
+    @Test
+    void dropsMetadata() {
+        byte[] upload = withTextChunk(image(400, 400, "png"), "comment", "taken at home");
+        assertThat(latin1(upload)).contains("taken at home");
+
+        byte[] result = AvatarImage.normalise(upload);
+
+        assertThat(latin1(result)).doesNotContain("taken at home");
+    }
+
     private static byte[] image(int width, int height, String format) {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -112,5 +122,26 @@ class AvatarImageTest {
             throw new UncheckedIOException(e);
         }
         return out.toByteArray();
+    }
+
+    private static byte[] withTextChunk(byte[] png, String keyword, String text) {
+        byte[] data = (keyword + "\0" + text).getBytes(StandardCharsets.ISO_8859_1);
+        ByteBuffer chunk = ByteBuffer.allocate(12 + data.length);
+        chunk.putInt(data.length);
+        chunk.put("tEXt".getBytes(StandardCharsets.US_ASCII));
+        chunk.put(data);
+        CRC32 crc = new CRC32();
+        crc.update(chunk.array(), 4, 4 + data.length);
+        chunk.putInt((int) crc.getValue());
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        out.write(png, 0, 33);
+        out.write(chunk.array(), 0, chunk.capacity());
+        out.write(png, 33, png.length - 33);
+        return out.toByteArray();
+    }
+
+    private static String latin1(byte[] bytes) {
+        return new String(bytes, StandardCharsets.ISO_8859_1);
     }
 }
