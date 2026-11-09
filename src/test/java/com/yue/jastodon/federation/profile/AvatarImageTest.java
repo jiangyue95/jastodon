@@ -14,10 +14,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AvatarImageTest {
 
+    private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1A, '\n'};
+
     @Test
     void acceptsA400By400Png() throws IOException {
         byte[] result = AvatarImage.normalise(image(400, 400, "png"));
 
+        BufferedImage read = ImageIO.read(new ByteArrayInputStream(result));
+        assertThat(read).isNotNull();
+        assertThat(read.getWidth()).isEqualTo(400);
+        assertThat(read.getHeight()).isEqualTo(400);
+    }
+
+    @Test
+    void convertsAJpegToPng() throws IOException {
+        byte[] result = AvatarImage.normalise(image(400, 400, "jpeg"));
+
+        assertThat(result).startsWith(PNG_SIGNATURE);
         BufferedImage read = ImageIO.read(new ByteArrayInputStream(result));
         assertThat(read).isNotNull();
         assertThat(read.getWidth()).isEqualTo(400);
