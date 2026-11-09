@@ -6,7 +6,6 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -52,7 +51,7 @@ class AvatarImageTest {
 
         assertThatThrownBy(() -> AvatarImage.normalise(upload))
                 .isInstanceOf(InvalidImageException.class)
-                .hasMessageContaining("Avatar must be a PNG or JPEG image");
+                .hasMessage("Avatar must be a PNG or JPEG image");
     }
 
     @ParameterizedTest
@@ -62,7 +61,7 @@ class AvatarImageTest {
 
         assertThatThrownBy(() -> AvatarImage.normalise(upload))
                 .isInstanceOf(InvalidImageException.class)
-                .hasMessageContaining("Avatar must be a PNG or JPEG image");
+                .hasMessage("Avatar must be a PNG or JPEG image");
     }
 
     @Test
@@ -72,7 +71,7 @@ class AvatarImageTest {
 
         assertThatThrownBy(() -> AvatarImage.normalise(upload))
                 .isInstanceOf(InvalidImageException.class)
-                .hasMessageContaining("Cannot read image")
+                .hasMessage("Cannot read image")
                 .hasCauseInstanceOf(IOException.class);
     }
 
@@ -83,7 +82,7 @@ class AvatarImageTest {
 
         assertThatThrownBy(() -> AvatarImage.normalise(upload))
                 .isInstanceOf(InvalidImageException.class)
-                .hasMessageContaining("Avatar must be 400x400, was " + width + "x" + height);
+                .hasMessage("Avatar must be 400x400, was " + width + "x" + height);
     }
 
     @Test
@@ -116,7 +115,7 @@ class AvatarImageTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
             if (!ImageIO.write(image, format, out)) {
-                throw new IllegalStateException("No ImageIO write for " + format);
+                throw new IllegalStateException("No ImageIO writer for " + format);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
