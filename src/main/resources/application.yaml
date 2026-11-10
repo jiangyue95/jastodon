@@ -17,5 +17,7 @@ jastodon:
     username: yue
     base-url: http://localhost:8080
     private-key-location: file:secrets/actor-private-key.pem
+  media:
+    base-url: https://media.jastodon.invalid
   delivery:
     enabled: true
