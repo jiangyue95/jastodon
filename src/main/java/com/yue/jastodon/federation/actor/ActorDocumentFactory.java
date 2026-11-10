@@ -30,6 +30,7 @@ class ActorDocumentFactory {
                 new Actor.PublicKey(
                         federationProperties.keyId(),
                         federationProperties.actorId(),
-                        actorKeys.publicKeyPem()));
+                        actorKeys.publicKeyPem()),
+                null);
     }
 }
