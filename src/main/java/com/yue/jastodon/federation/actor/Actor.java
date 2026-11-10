@@ -25,7 +25,7 @@ public record Actor(
                 inbox,
                 outbox,
                 publicKey,
-                null);
+                icon);
     }
 
     public record PublicKey(URI id, URI owner, String publicKeyPem) {}
