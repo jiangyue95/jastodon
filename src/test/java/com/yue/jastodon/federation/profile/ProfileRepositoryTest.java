@@ -50,4 +50,13 @@ class ProfileRepositoryTest extends AbstractIntegrationTest {
 
         assertThat(profileRepository.findAvatarKey(YUE)).isEmpty();
     }
+
+    @Test
+    void findsNothingWhenTheProfileHasNoAvatar() {
+        jdbcClient.sql("INSERT INTO profiles (username, avatar_key) VALUES (:username, NULL)")
+                .param("username", YUE)
+                .update();
+
+        assertThat(profileRepository.findAvatarKey(YUE)).isEmpty();
+    }
 }
