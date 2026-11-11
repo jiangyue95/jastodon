@@ -17,6 +17,7 @@ public class Avatars {
     }
 
     public Optional<URI> currentUrl(String username) {
-        return Optional.empty();
+        return profileRepository.findAvatarKey(username)
+                .map(key -> URI.create(mediaProperties.baseUrl() + "/" + key));
     }
 }
