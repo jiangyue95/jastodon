@@ -11,6 +11,9 @@ class ActorDocumentFactory {
 
     private static final String ACTIVITY_STREAMS_CONTEXT = "https://www.w3.org/ns/activitystreams";
     private static final String SECURITY_CONTEXT = "https://w3id.org/security/v1";
+    private static final String ICON_TYPE = "Image";
+    // AvatarImage.normalise always re-encodes the avatar as PNG.
+    private static final String AVATAR_MEDIA_TYPE = "image/png";
 
     private final FederationProperties federationProperties;
     private final ActorKeys actorKeys;
@@ -34,6 +37,8 @@ class ActorDocumentFactory {
                         federationProperties.keyId(),
                         federationProperties.actorId(),
                         actorKeys.publicKeyPem()),
-                null);
+                avatars.currentUrl(federationProperties.username())
+                        .map(url -> new Actor.Icon(ICON_TYPE, AVATAR_MEDIA_TYPE, url))
+                        .orElse(null));
     }
 }
