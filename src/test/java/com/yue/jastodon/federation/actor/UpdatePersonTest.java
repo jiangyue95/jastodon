@@ -24,7 +24,8 @@ class UpdatePersonTest {
             new Actor.PublicKey(
                     URI.create("https://jastodon.test/users/yue#main-key"),
                     URI.create("https://jastodon.test/users/yue"),
-                    "test-pem"));
+                    "test-pem"),
+            null);
 
     @Test
     void serialisesLikeMastodonUpdate() {

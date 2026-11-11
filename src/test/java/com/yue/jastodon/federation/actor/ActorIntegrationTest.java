@@ -2,10 +2,12 @@ package com.yue.jastodon.federation.actor;
 
 import com.yue.jastodon.AbstractIntegrationTest;
 import com.yue.jastodon.federation.webfinger.Jrd;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
 import java.util.Base64;
@@ -21,6 +23,14 @@ class ActorIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     RestTestClient client;
+
+    @Autowired
+    JdbcClient jdbcClient;
+
+    @BeforeEach
+    void deleteProfiles() {
+        jdbcClient.sql("DELETE FROM profiles").update();
+    }
 
     @Test
     void returnsActorForLocalAccount() {
@@ -86,5 +96,31 @@ class ActorIntegrationTest extends AbstractIntegrationTest {
                 .replace("-----END PUBLIC KEY-----", "");
         byte[] published = Base64.getMimeDecoder().decode(base64);
         assertThat(published).isEqualTo(testPublicKey().getEncoded());
+    }
+
+    @Test
+    void publishesTheAvatarAsTheIcon() {
+        jdbcClient.sql("INSERT INTO profiles (username, avatar_key) VALUES (:username, :avatarKey)")
+                .param("username", "yue")
+                .param("avatarKey", "avatars/6f1c2a3e-8b4d-4e7a-9c5f-2d3e4f5a6b7c.png")
+                .update();
+
+        client.get().uri("/users/yue")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.icon.type").isEqualTo("Image")
+                .jsonPath("$.icon.mediaType").isEqualTo("image/png")
+                .jsonPath("$.icon.url")
+                .isEqualTo("https://media.jastodon.test/avatars/6f1c2a3e-8b4d-4e7a-9c5f-2d3e4f5a6b7c.png");
+    }
+
+    @Test
+    void hasNoIconWithoutAnAvatar() {
+        client.get().uri("/users/yue")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.icon").doesNotHaveJsonPath();
     }
 }

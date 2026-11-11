@@ -13,7 +13,8 @@ public record Actor(
         String preferredUsername,
         URI inbox,
         URI outbox,
-        PublicKey publicKey) {
+        PublicKey publicKey,
+        @JsonInclude(JsonInclude.Include.NON_NULL) Icon icon) {
 
     Actor withoutContext() {
         return new Actor(
@@ -23,8 +24,11 @@ public record Actor(
                 preferredUsername,
                 inbox,
                 outbox,
-                publicKey);
+                publicKey,
+                icon);
     }
 
     public record PublicKey(URI id, URI owner, String publicKeyPem) {}
+
+    public record Icon(String type, String mediaType, URI url) {}
 }
