@@ -1,6 +1,7 @@
 package com.yue.jastodon.federation.actor;
 
 import com.yue.jastodon.federation.FederationProperties;
+import com.yue.jastodon.federation.profile.Avatars;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -13,10 +14,12 @@ class ActorDocumentFactory {
 
     private final FederationProperties federationProperties;
     private final ActorKeys actorKeys;
+    private final Avatars avatars;
 
-    ActorDocumentFactory(FederationProperties federationProperties, ActorKeys actorKeys) {
+    ActorDocumentFactory(FederationProperties federationProperties, ActorKeys actorKeys, Avatars avatars) {
         this.federationProperties = federationProperties;
         this.actorKeys = actorKeys;
+        this.avatars = avatars;
     }
 
     Actor build() {
