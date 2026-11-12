@@ -8,6 +8,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,6 +18,7 @@ import static org.mockito.Mockito.verify;
 class S3AvatarStorageTest {
 
     private static final UUID ID = UUID.fromString("3f2504e0-4f89-41d3-9a0c-0305e82c3301");
+    private static final UUID OTHER_ID = UUID.fromString("9b2c7e41-0d5a-4f3e-8a61-2f7c4b1d6e90");
     private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G'};
 
     private final S3Client s3Client = mock(S3Client.class);
@@ -27,7 +29,7 @@ class S3AvatarStorageTest {
                     "eu-west-1",
                     "test-access-key-id",
                     "test-secret-access-key"),
-            () -> ID);
+            List.of(ID, OTHER_ID).iterator()::next);
 
     @Test
     void storesThePngUnderANewKey() throws IOException {
