@@ -11,5 +11,10 @@ jastodon:
     base-url: https://jastodon.test
   media:
     base-url: https://media.jastodon.test
+    storage:
+      bucket: jastodon-media-test
+      region: eu-west-1
+      access-key-id: test-access-key-id
+      secret-access-key: test-secret-access-key
   delivery:
     enabled: false
