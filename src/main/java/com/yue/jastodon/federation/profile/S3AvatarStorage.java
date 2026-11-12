@@ -2,10 +2,15 @@ package com.yue.jastodon.federation.profile;
 
 import org.springframework.stereotype.Component;
 import org.springframework.util.IdGenerator;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Component
 class S3AvatarStorage implements AvatarStorage {
+
+    private static final String CONTENT_TYPE = "image/png";
+    private static final String CACHE_CONTROL = "public, max-age=31536000, immutable";
 
     private final S3Client s3Client;
     private final MediaStorageProperties properties;
@@ -19,6 +24,15 @@ class S3AvatarStorage implements AvatarStorage {
 
     @Override
     public String store(byte[] png) {
-        return null;
+        String key = "avatars/" + idGenerator.generateId() + ".png";
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(properties.bucket())
+                .key(key)
+                .ifNoneMatch("*")
+                .contentType(CONTENT_TYPE)
+                .cacheControl(CACHE_CONTROL)
+                .build();
+        s3Client.putObject(request, RequestBody.fromBytes(png));
+        return key;
     }
 }
