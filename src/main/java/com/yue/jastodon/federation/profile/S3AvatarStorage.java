@@ -2,6 +2,8 @@ package com.yue.jastodon.federation.profile;
 
 import org.springframework.stereotype.Component;
 import org.springframework.util.IdGenerator;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -32,7 +34,11 @@ class S3AvatarStorage implements AvatarStorage {
                 .contentType(CONTENT_TYPE)
                 .cacheControl(CACHE_CONTROL)
                 .build();
-        s3Client.putObject(request, RequestBody.fromBytes(png));
+        try {
+            s3Client.putObject(request, RequestBody.fromBytes(png));
+        } catch (SdkException e) {
+            throw new AvatarStorageException("Cannot store avatar " + key, e);
+        }
         return key;
     }
 }
