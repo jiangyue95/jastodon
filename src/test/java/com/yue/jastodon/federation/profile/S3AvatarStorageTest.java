@@ -2,9 +2,12 @@ package com.yue.jastodon.federation.profile;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,8 +15,11 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class S3AvatarStorageTest {
 
@@ -50,5 +56,30 @@ class S3AvatarStorageTest {
             assertThat(in.readAllBytes()).isEqualTo(PNG);
         }
         assertThat(key).isEqualTo("avatars/3f2504e0-4f89-41d3-9a0c-0305e82c3301.png");
+    }
+
+    @Test
+    void wrapsARejectionFromS3() {
+        SdkException rejected = S3Exception.builder()
+                .statusCode(412)
+                .message("At least one of the pre-conditions you specified did not hold")
+                .build();
+        when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class))).thenThrow(rejected);
+
+        assertThatThrownBy(() -> storage.store(PNG))
+                .isInstanceOf(AvatarStorageException.class)
+                .hasMessage("Cannot store avatar avatars/3f2504e0-4f89-41d3-9a0c-0305e82c3301.png")
+                .hasCause(rejected);
+    }
+
+    @Test
+    void wrapsAFailureToReachS3() {
+        SdkException unreachable = SdkClientException.create("Unable to execute HTTP request");
+        when(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class))).thenThrow(unreachable);
+
+        assertThatThrownBy(() -> storage.store(PNG))
+                .isInstanceOf(AvatarStorageException.class)
+                .hasMessage("Cannot store avatar avatars/3f2504e0-4f89-41d3-9a0c-0305e82c3301.png")
+                .hasCause(unreachable);
     }
 }
