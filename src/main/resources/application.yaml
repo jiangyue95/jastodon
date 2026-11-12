@@ -19,5 +19,10 @@ jastodon:
     private-key-location: file:secrets/actor-private-key.pem
   media:
     base-url: https://media.jastodon.invalid
+    storage:
+      bucket: NOT-CONFIGURED
+      region: eu-west-1
+      access-key-id: NOT-CONFIGURED
+      secret-access-key: NOT-CONFIGURED
   delivery:
     enabled: true
