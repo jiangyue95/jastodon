@@ -11,9 +11,11 @@ import java.net.URI;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class AvatarsTest {
@@ -55,6 +57,17 @@ class AvatarsTest {
         verify(avatarStorage).store(stored.capture());
         assertThat(stored.getValue()).startsWith(PNG_SIGNATURE);
         assertThat(key).isEqualTo("avatars/3f2504e0-4f89-41d3-9a0c-0305e82c3301.png");
+    }
+
+    @Test
+    void uploadStoresNothingWhenTheImageIsInvalid() throws IOException {
+        byte[] tooWide = image(401, 400, "png");
+
+        assertThatThrownBy(() -> avatars.upload(tooWide))
+                .isInstanceOf(InvalidImageException.class)
+                .hasMessage("Avatar must be 400x400, was 401x400");
+
+        verifyNoInteractions(avatarStorage);
     }
 
     private static byte[] image(int width, int height, String format) throws IOException {
