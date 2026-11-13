@@ -70,6 +70,14 @@ class AvatarsTest {
         verifyNoInteractions(avatarStorage);
     }
 
+    @Test
+    void makeCurrentSavesTheAvatarKey() {
+        avatars.makeCurrent("yue", "avatars/3f2504e0-4f89-41d3-9a0c-0305e82c3301.png");
+
+        verify(profileRepository).saveAvatarKey(
+                "yue", "avatars/3f2504e0-4f89-41d3-9a0c-0305e82c3301.png");
+    }
+
     private static byte[] image(int width, int height, String format) throws IOException {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         ByteArrayOutputStream out = new ByteArrayOutputStream();

@@ -27,4 +27,7 @@ public class Avatars {
         byte[] png = AvatarImage.normalise(image);
         return avatarStorage.store(png);
     }
+
+    public void makeCurrent(String username, String key) {
+    }
 }
