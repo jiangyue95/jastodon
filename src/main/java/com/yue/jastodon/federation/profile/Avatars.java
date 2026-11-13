@@ -24,6 +24,7 @@ public class Avatars {
     }
 
     public String upload(byte[] image) {
-        return null;
+        byte[] png = AvatarImage.normalise(image);
+        return avatarStorage.store(png);
     }
 }
