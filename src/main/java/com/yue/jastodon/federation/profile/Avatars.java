@@ -29,5 +29,6 @@ public class Avatars {
     }
 
     public void makeCurrent(String username, String key) {
+        profileRepository.saveAvatarKey(username, key);
     }
 }
