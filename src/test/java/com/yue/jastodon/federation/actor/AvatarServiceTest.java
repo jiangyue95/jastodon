@@ -1,6 +1,7 @@
 package com.yue.jastodon.federation.actor;
 
 import com.yue.jastodon.AbstractIntegrationTest;
+import com.yue.jastodon.federation.delivery.DeliveryRepository;
 import com.yue.jastodon.federation.follower.Follower;
 import com.yue.jastodon.federation.follower.FollowerRepository;
 import com.yue.jastodon.federation.profile.Avatars;
@@ -8,6 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -21,7 +24,9 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,6 +55,9 @@ class AvatarServiceTest extends AbstractIntegrationTest {
 
     @MockitoSpyBean
     Avatars avatars;
+
+    @MockitoSpyBean
+    DeliveryRepository deliveryRepository;
 
     @MockitoBean
     IdGenerator idGenerator;
@@ -136,6 +144,28 @@ class AvatarServiceTest extends AbstractIntegrationTest {
                 .single();
 
         assertThat(nextAttemptAt.toInstant()).isEqualTo(Instant.parse("2026-10-07T10:00:00Z"));
+    }
+
+    @Test
+    void keepsTheCurrentAvatarWhenAnUpdateCannotBeEnqueued() {
+        jdbcClient.sql("""
+                       INSERT INTO profiles (username, avatar_key)
+                       VALUES ('yue', 'avatars/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d.png')
+                       """).update();
+        followerRepository.save(follower("alice"));
+        followerRepository.save(follower("bob"));
+        doCallRealMethod()
+                .doThrow(new DataAccessResourceFailureException("database down"))
+                .when(deliveryRepository).enqueue(any(), any(), any());
+
+        assertThatThrownBy(() -> avatarService.change(IMAGE))
+                .isInstanceOf(DataAccessResourceFailureException.class)
+                .hasMessageContaining("database down");
+        assertThat(jdbcClient.sql("SELECT avatar_key FROM profiles WHERE username = 'yue'")
+                .query(String.class)
+                .single())
+                .isEqualTo("avatars/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d.png");
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM deliveries").query(Long.class).single()).isZero();
     }
 
     private static Follower follower(String name) {
