@@ -1,6 +1,7 @@
 package com.yue.jastodon.federation.actor;
 
 import com.yue.jastodon.AbstractIntegrationTest;
+import com.yue.jastodon.federation.profile.AvatarStorageException;
 import com.yue.jastodon.federation.profile.InvalidImageException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -69,5 +70,24 @@ class AvatarControllerTest extends AbstractIntegrationTest {
                 .andExpect(content().string(""));
 
         assertThat(output).contains("Avatar upload answered 400: Avatar must be a PNG or JPEG image");
+    }
+
+    @Test
+    void answersServiceUnavailableWhenTheAvatarCannotBeStored(CapturedOutput output) throws Exception {
+        when(avatarService.change(any())).thenThrow(new AvatarStorageException(
+                "Cannot store avatar avatars/9b2c7f4e-1d3a-4c8b-a6e5-0f1d2c3b4a59.png",
+                new IllegalStateException("connection reset")));
+
+        mockMvc.perform(multipart("/profile/avatar")
+                .file(new MockMultipartFile("avatar", "avatar.png", "image/png", IMAGE))
+                .with(oauth2Login())
+                .with(csrf()))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().string(""));
+
+        assertThat(output)
+                .contains("Avatar upload answered 503: " +
+                        "Cannot store avatar avatars/9b2c7f4e-1d3a-4c8b-a6e5-0f1d2c3b4a59.png")
+                .contains("Caused by: java.lang.IllegalStateException: connection reset");
     }
 }
