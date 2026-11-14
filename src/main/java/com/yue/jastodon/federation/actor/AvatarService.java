@@ -6,6 +6,7 @@ import com.yue.jastodon.federation.follower.Follower;
 import com.yue.jastodon.federation.follower.FollowerRepository;
 import com.yue.jastodon.federation.profile.Avatars;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.IdGenerator;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -24,6 +25,7 @@ class AvatarService {
     private final JsonMapper jsonMapper;
     private final IdGenerator idGenerator;
     private final Clock clock;
+    private final TransactionTemplate transactionTemplate;
 
     AvatarService(
             Avatars avatars,
@@ -33,7 +35,8 @@ class AvatarService {
             DeliveryRepository deliveryRepository,
             JsonMapper jsonMapper,
             IdGenerator idGenerator,
-            Clock clock) {
+            Clock clock,
+            TransactionTemplate transactionTemplate) {
         this.avatars = avatars;
         this.federationProperties = federationProperties;
         this.actorDocumentFactory = actorDocumentFactory;
@@ -42,18 +45,21 @@ class AvatarService {
         this.jsonMapper = jsonMapper;
         this.idGenerator = idGenerator;
         this.clock = clock;
+        this.transactionTemplate = transactionTemplate;
     }
 
     URI change(byte[] image) {
         String key = avatars.upload(image);
         String username = federationProperties.username();
-        avatars.makeCurrent(username, key);
-        Actor actor = actorDocumentFactory.build();
-        String body = jsonMapper.writeValueAsString(UpdatePerson.of(actor, idGenerator.generateId()));
-        Instant now = clock.instant();
-        for (Follower follower : followerRepository.findAll()) {
-            deliveryRepository.enqueue(follower.inbox(), body, now);
-        }
+        transactionTemplate.executeWithoutResult(status -> {
+            avatars.makeCurrent(username, key);
+            Actor actor = actorDocumentFactory.build();
+            String body = jsonMapper.writeValueAsString(UpdatePerson.of(actor, idGenerator.generateId()));
+            Instant now = clock.instant();
+            for (Follower follower : followerRepository.findAll()) {
+                deliveryRepository.enqueue(follower.inbox(), body, now);
+            }
+        });
         return avatars.currentUrl(username).orElseThrow();
     }
 }
