@@ -1,5 +1,8 @@
 package com.yue.jastodon.federation.actor;
 
+import com.yue.jastodon.federation.profile.InvalidImageException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,5 +27,10 @@ class AvatarController {
     }
 
     record AvatarResponse(URI url) {
+    }
+
+    @ExceptionHandler(InvalidImageException.class)
+    ResponseEntity<Void> invalidImage() {
+        return ResponseEntity.badRequest().build();
     }
 }
