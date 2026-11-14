@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -28,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -91,7 +91,7 @@ class AvatarServiceTest extends AbstractIntegrationTest {
     @Test
     void changeEnqueuesAnUpdateForEveryFollower() {
         jdbcClient.sql("""
-                       INSERT INTO profiles (username, avatar_key) 
+                       INSERT INTO profiles (username, avatar_key)
                        VALUES ('yue', 'avatars/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d.png')
                        """).update();
         followerRepository.save(follower("alice"));
@@ -139,7 +139,7 @@ class AvatarServiceTest extends AbstractIntegrationTest {
 
         avatarService.change(IMAGE);
 
-        OffsetDateTime nextAttemptAt =  jdbcClient.sql("SELECT next_attempt_at FROM deliveries")
+        OffsetDateTime nextAttemptAt = jdbcClient.sql("SELECT next_attempt_at FROM deliveries")
                 .query((rs, rowNum) -> rs.getObject("next_attempt_at", OffsetDateTime.class))
                 .single();
 
@@ -162,6 +162,25 @@ class AvatarServiceTest extends AbstractIntegrationTest {
                 .isInstanceOf(DataAccessResourceFailureException.class)
                 .hasMessageContaining("database down");
         assertThat(jdbcClient.sql("SELECT avatar_key FROM profiles WHERE username = 'yue'")
+                .query(String.class)
+                .single())
+                .isEqualTo("avatars/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d.png");
+        assertThat(jdbcClient.sql("SELECT COUNT(*) FROM deliveries").query(Long.class).single()).isZero();
+    }
+
+    @Test
+    void keepsTheCurrentAvatarWhenTheUploadFails() {
+        jdbcClient.sql("""
+                       INSERT INTO profiles (username, avatar_key)
+                       VALUES ('yue', 'avatars/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d.png')
+                       """).update();
+        followerRepository.save(follower("alice"));
+        RuntimeException failure = new IllegalStateException("upload failed");
+        doThrow(failure).when(avatars).upload(any());
+
+        assertThatThrownBy(() -> avatarService.change(IMAGE)).isSameAs(failure);
+
+        assertThat(jdbcClient.sql("SELECT avatar_key FROM profiles WHERE username ='yue'")
                 .query(String.class)
                 .single())
                 .isEqualTo("avatars/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d.png");
