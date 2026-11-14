@@ -1,6 +1,7 @@
 package com.yue.jastodon.federation.actor;
 
 import com.yue.jastodon.AbstractIntegrationTest;
+import com.yue.jastodon.federation.profile.InvalidImageException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -48,5 +49,18 @@ class AvatarControllerTest extends AbstractIntegrationTest {
                         "https://media.jastodon.test/avatars/9b2c7f4e-1d3a-4c8b-a6e5-0f1d2c3b4a59.png"));
 
         verify(avatarService).change(IMAGE);
+    }
+
+    @Test
+    void rejectsAnInvalidImage() throws Exception {
+        when(avatarService.change(any()))
+                .thenThrow(new InvalidImageException("Avatar must be a PNG or JPEG image"));
+
+        mockMvc.perform(multipart("/profile/avatar")
+                .file(new MockMultipartFile("avatar", "avatar.png", "image/png", IMAGE))
+                .with(oauth2Login())
+                .with(csrf()))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(""));
     }
 }

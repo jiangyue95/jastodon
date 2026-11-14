@@ -1,8 +1,8 @@
 package com.yue.jastodon.federation.profile;
 
-class InvalidImageException extends RuntimeException {
+public class InvalidImageException extends RuntimeException {
 
-    InvalidImageException(String message) {
+    public InvalidImageException(String message) {
         super(message);
     }
 
