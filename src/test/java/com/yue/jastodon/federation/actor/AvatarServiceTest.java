@@ -15,7 +15,9 @@ import org.springframework.util.IdGenerator;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.net.URI;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +31,7 @@ class AvatarServiceTest extends AbstractIntegrationTest {
 
     private static final byte[] IMAGE = {1, 2, 3};
     private static final UUID UPDATE_ID = UUID.fromString("3f2b8c1d-6a4e-4f9b-8d2c-7e5a1b9c0d34");
+    private static final Instant NOW = Instant.parse("2026-10-07T10:00:00Z");
 
     @Autowired
     AvatarService avatarService;
@@ -51,6 +54,9 @@ class AvatarServiceTest extends AbstractIntegrationTest {
     @MockitoBean
     IdGenerator idGenerator;
 
+    @MockitoBean
+    Clock clock;
+
     @BeforeEach
     void setUp() {
         jdbcClient.sql("DELETE FROM profiles").update();
@@ -58,6 +64,7 @@ class AvatarServiceTest extends AbstractIntegrationTest {
         jdbcClient.sql("DELETE FROM deliveries").update();
         doReturn("avatars/9b2c7f4e-1d3a-4c8b-a6e5-0f1d2c3b4a59.png").when(avatars).upload(any());
         when(idGenerator.generateId()).thenReturn(UPDATE_ID);
+        when(clock.instant()).thenReturn(NOW);
     }
 
     @Test
@@ -116,6 +123,19 @@ class AvatarServiceTest extends AbstractIntegrationTest {
                           }
                         }
                         """.formatted(jsonMapper.writeValueAsString(actorKeys.publicKeyPem())))));
+    }
+
+    @Test
+    void enqueuedUpdateIsDueImmediately() {
+        followerRepository.save(follower("alice"));
+
+        avatarService.change(IMAGE);
+
+        OffsetDateTime nextAttemptAt =  jdbcClient.sql("SELECT next_attempt_at FROM deliveries")
+                .query((rs, rowNum) -> rs.getObject("next_attempt_at", OffsetDateTime.class))
+                .single();
+
+        assertThat(nextAttemptAt.toInstant()).isEqualTo(Instant.parse("2026-10-07T10:00:00Z"));
     }
 
     private static Follower follower(String name) {
