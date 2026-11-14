@@ -1,6 +1,8 @@
 package com.yue.jastodon.federation.actor;
 
 import com.yue.jastodon.federation.profile.InvalidImageException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +16,8 @@ import java.net.URI;
 @RestController
 class AvatarController {
 
+    private static final Logger log = LoggerFactory.getLogger(AvatarController.class);
+
     private final AvatarService avatarService;
 
     AvatarController(AvatarService avatarService) {
@@ -26,11 +30,12 @@ class AvatarController {
         return new AvatarResponse(url);
     }
 
-    record AvatarResponse(URI url) {
+    @ExceptionHandler(InvalidImageException.class)
+    ResponseEntity<Void> invalidImage(InvalidImageException e) {
+        log.warn("Avatar upload answered 400: {}", e.getMessage());
+        return ResponseEntity.badRequest().build();
     }
 
-    @ExceptionHandler(InvalidImageException.class)
-    ResponseEntity<Void> invalidImage() {
-        return ResponseEntity.badRequest().build();
+    record AvatarResponse(URI url) {
     }
 }
