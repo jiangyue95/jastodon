@@ -19,6 +19,7 @@ import java.net.URI;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
@@ -89,5 +90,15 @@ class AvatarControllerTest extends AbstractIntegrationTest {
                 .contains("Avatar upload answered 503: " +
                         "Cannot store avatar avatars/9b2c7f4e-1d3a-4c8b-a6e5-0f1d2c3b4a59.png")
                 .contains("Caused by: java.lang.IllegalStateException: connection reset");
+    }
+
+    @Test
+    void answersUnauthorizedToAnAnonymousUploadWithACsrfToken() throws Exception {
+        mockMvc.perform(multipart("/profile/avatar")
+                .file(new MockMultipartFile("avatar", "avatar.png", "image/png", IMAGE))
+                .with(csrf()))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(avatarService);
     }
 }
