@@ -1,6 +1,9 @@
 {$JASTODON_DOMAIN} {
-  redir /compose /compose/
-  handle_path /compose/* {
+  @oldPage path /compose /compose/*
+  redir @oldPage /
+
+  @page path / /assets/* /favicon.svg
+  handle @page {
     header {
       X-Frame-Options DENY
       X-Content-Type-Options nosniff
