@@ -2,6 +2,11 @@ spring:
   application:
     name: jastodon
 
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
+
   security:
     oauth2:
       client:
