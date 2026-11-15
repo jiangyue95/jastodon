@@ -64,7 +64,8 @@ public class SecurityConfig {
                         new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                         new OrRequestMatcher(
                                 PathPatternRequestMatcher.pathPattern("/csrf"),
-                                PathPatternRequestMatcher.pathPattern("/notes")))
+                                PathPatternRequestMatcher.pathPattern("/notes"),
+                                PathPatternRequestMatcher.pathPattern("/profile/avatar")))
                 .defaultEntryPoint(new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/github"))
                 .build();
     }
