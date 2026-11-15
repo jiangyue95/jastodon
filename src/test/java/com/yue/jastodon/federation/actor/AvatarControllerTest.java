@@ -101,4 +101,14 @@ class AvatarControllerTest extends AbstractIntegrationTest {
 
         verifyNoInteractions(avatarService);
     }
+
+    @Test
+    void rejectsALoggedInUploadWithoutACsrfToken() throws Exception {
+        mockMvc.perform(multipart("/profile/avatar")
+                .file(new MockMultipartFile("avatar", "avatar.png", "image/png", IMAGE))
+                .with(oauth2Login()))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(avatarService);
+    }
 }
