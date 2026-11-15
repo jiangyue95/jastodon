@@ -27,7 +27,7 @@ class AvatarController {
     }
 
     @PostMapping("/profile/avatar")
-    AvatarResponse change(@RequestParam("avatar")MultipartFile avatar) throws IOException {
+    AvatarResponse change(@RequestParam("avatar") MultipartFile avatar) throws IOException {
         URI url = avatarService.change(avatar.getBytes());
         return new AvatarResponse(url);
     }

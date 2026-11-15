@@ -180,7 +180,7 @@ class AvatarServiceTest extends AbstractIntegrationTest {
 
         assertThatThrownBy(() -> avatarService.change(IMAGE)).isSameAs(failure);
 
-        assertThat(jdbcClient.sql("SELECT avatar_key FROM profiles WHERE username ='yue'")
+        assertThat(jdbcClient.sql("SELECT avatar_key FROM profiles WHERE username = 'yue'")
                 .query(String.class)
                 .single())
                 .isEqualTo("avatars/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d.png");
