@@ -52,6 +52,33 @@ class NoteRepository {
                 .optional();
     }
 
+    List<Note> findFirstPage(int limit) {
+        return jdbcClient.sql("""
+                              SELECT id, content, published
+                              FROM notes
+                              ORDER BY published DESC, id DESC
+                              LIMIT :limit
+                              """)
+                .param("limit", limit)
+                .query(NoteRepository::mapRow)
+                .list();
+    }
+
+    List<Note> findPageAfter(NoteCursor after, int limit) {
+        return jdbcClient.sql("""
+                              SELECT id, content, published
+                              FROM notes
+                              WHERE (published, id) < (:published, :id)
+                              ORDER BY published DESC, id DESC
+                              LIMIT :limit
+                              """)
+                .param("published", after.published().atOffset(ZoneOffset.UTC))
+                .param("id", after.id())
+                .param("limit", limit)
+                .query(NoteRepository::mapRow)
+                .list();
+    }
+
     private static Note mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new Note(
                 rs.getObject("id", UUID.class),
