@@ -58,6 +58,11 @@ class NoteController {
                 .body(Outbox.of(noteRepository.findAll(), federationProperties));
     }
 
+    @GetMapping("/notes")
+    NoteList list() {
+        return NoteList.of(noteRepository.findAll(), federationProperties);
+    }
+
     @PostMapping("/notes")
     ResponseEntity<NoteDocument> create(@RequestBody NoteRequest request) {
         Note note;
