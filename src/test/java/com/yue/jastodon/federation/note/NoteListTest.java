@@ -75,4 +75,11 @@ class NoteListTest extends AbstractIntegrationTest {
                 }
                 """));
     }
+
+    @Test
+    void answersUnauthorizedToAnAnonymousRequest() throws Exception {
+        mockMvc.perform(get("/notes"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string(""));
+    }
 }
