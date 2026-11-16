@@ -109,7 +109,7 @@ class NoteRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void pageAfterACursorHoldsTheNextNoteUpToTheLimit() {
+    void pageAfterACursorHoldsTheNextNotesUpToTheLimit() {
         Note newest = new Note(ID, CONTENT, LATEST);
         Note second = new Note(FOURTH_ID, CONTENT, LATER);
         Note third = new Note(OTHER_ID, CONTENT, EARLIER);
