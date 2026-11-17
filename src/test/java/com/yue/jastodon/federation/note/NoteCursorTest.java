@@ -36,6 +36,7 @@ class NoteCursorTest {
             "aGVsbG8",
             "bm90LWEtdGltZXw4ZGE0MDZlYy0xMzExLTQzNDYtODdjNi05ZDM5ZTBlZWZhYjU",
             "MjAyNi0xMS0wN1QyMzo0ODo1NS40OTQ2OTFafG5vdC1hLXV1aWQ",
+            "MjAyNi0xMS0wN1QyMzo0ODo1NS40OTQ2OTFa",
             "MjAyNi0xMS0wN1QyMzo0ODo1NS40OTQ2OTFafDhkYTQwNmVjLTEzMTEtNDM0Ni04N2M2LTlkMzllMGVlZmFiNXxleHRyYQ"})
     void rejectsAMalformedCursor(String value) {
         assertThat(NoteCursor.decode(value)).isEmpty();
