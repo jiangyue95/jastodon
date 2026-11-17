@@ -17,6 +17,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,6 +30,7 @@ class NoteServiceTest extends AbstractIntegrationTest {
     private static final UUID ID = UUID.fromString("0e1f6a3c-5b2d-4c8e-9a7f-1d2e3c4b5a69");
     private static final Clock CLOCK =
             Clock.fixed(Instant.parse("2026-10-07T10:00:00.123456789Z"), ZoneOffset.UTC);
+    private static final Instant FIRST = Instant.parse("2026-10-07T10:00:00Z");
 
     @Autowired
     NoteRepository noteRepository;
@@ -128,11 +131,58 @@ class NoteServiceTest extends AbstractIntegrationTest {
         assertThat(nextAttemptAt.toInstant()).isEqualTo(Instant.parse("2026-10-07T10:00:00.123456Z"));
     }
 
+    @Test
+    void aPageOfExactlyThePageSizeHasNoNext() {
+        List<Note> newestFirst = saveNotes(20);
+
+        NotePage page = noteService.firstPage();
+
+        assertThat(page.notes()).containsExactlyElementsOf(newestFirst);
+        assertThat(page.next()).isEmpty();
+    }
+
+    @Test
+    void firstPageStopsAtThePageSizeAndPointsAtItsLastNote() {
+        List<Note> newestFirst = saveNotes(21);
+        Note twentieth = newestFirst.get(19);
+
+        NotePage page = noteService.firstPage();
+
+        assertThat(page.notes()).containsExactlyElementsOf(newestFirst.subList(0, 20));
+        assertThat(page.next()).contains(new NoteCursor(twentieth.published(), twentieth.id()));
+    }
+
+    @Test
+    void followingNextVisitsEveryNoteOnce() {
+        List<Note> newestFirst = saveNotes(45);
+
+        NotePage first = noteService.firstPage();
+        NotePage second = noteService.pageAfter(first.next().orElseThrow());
+        NotePage third = noteService.pageAfter(second.next().orElseThrow());
+
+        List<Note> visited = new ArrayList<>();
+        visited.addAll(first.notes());
+        visited.addAll(second.notes());
+        visited.addAll(third.notes());
+        assertThat(visited).containsExactlyElementsOf(newestFirst);
+        assertThat(third.next()).isEmpty();
+    }
+
     private static Follower follower(String name) {
         return new Follower(
                 URI.create("https://remote.test/users/" + name),
                 URI.create("https://remote.test/users/" + name + "/inbox"),
                 URI.create("https://remote.test/follows/" + name),
                 Instant.parse("2026-10-07T09:00:00Z"));
+    }
+
+    private List<Note> saveNotes(int count) {
+        List<Note> notes = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            Note note = new Note(new UUID(0, i), "note " + i, FIRST.plusSeconds(i));
+            noteRepository.save(note);
+            notes.add(note);
+        }
+        return notes.reversed();
     }
 }

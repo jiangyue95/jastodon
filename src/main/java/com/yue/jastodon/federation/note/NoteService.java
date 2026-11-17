@@ -11,9 +11,13 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Clock;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 class NoteService {
+
+    private static final int PAGE_SIZE = 20;
 
     private final NoteRepository noteRepository;
     private final IdGenerator idGenerator;
@@ -50,5 +54,23 @@ class NoteService {
             deliveryRepository.enqueue(follower.inbox(), body, note.published());
         }
         return note;
+    }
+
+    NotePage firstPage() {
+        return toPage(noteRepository.findFirstPage(PAGE_SIZE + 1));
+    }
+
+    NotePage pageAfter(NoteCursor cursor) {
+        return toPage(noteRepository.findPageAfter(cursor, PAGE_SIZE + 1));
+    }
+
+    private static NotePage toPage(List<Note> fetched) {
+        if (fetched.size() <= PAGE_SIZE) {
+            return new NotePage(fetched, Optional.empty());
+        }
+        List<Note> notes = fetched.subList(0, PAGE_SIZE);
+        Note last = notes.getLast();
+        NoteCursor cursor = new NoteCursor(last.published(), last.id());
+        return new NotePage(notes, Optional.of(cursor));
     }
 }
