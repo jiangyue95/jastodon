@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-record NoteList(List<Item> notes) {
+record NoteList(List<Item> notes, String next) {
 
     record Item(
             UUID id,
@@ -16,8 +16,8 @@ record NoteList(List<Item> notes) {
             URI url) {
     }
 
-    static NoteList of(List<Note> notes, FederationProperties federation) {
-        List<Item> items = notes.stream()
+    static NoteList of(NotePage page, FederationProperties federation) {
+        List<Item> items = page.notes().stream()
                 .map(note -> new Item(
                         note.id(),
                         note.content(),
@@ -25,6 +25,7 @@ record NoteList(List<Item> notes) {
                         federation.noteId(note.id())))
                 .toList();
 
-        return new NoteList(items);
+        String next = page.next().map(NoteCursor::encode).orElse(null);
+        return new NoteList(items, next);
     }
 }

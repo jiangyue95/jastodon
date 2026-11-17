@@ -15,9 +15,11 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -26,6 +28,8 @@ class NoteListTest extends AbstractIntegrationTest {
 
     private static final UUID OLDER_ID = UUID.fromString("0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b");
     private static final UUID NEWER_ID = UUID.fromString("9b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e");
+    // URL-safe Base64, no padding, of "2026-10-07T10:00:01Z|00000000-0000-0000-0000-000000000001"
+    private static final String NEXT = "MjAyNi0xMC0wN1QxMDowMDowMVp8MDAwMDAwMDAtMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAx";
 
     @Autowired
     MockMvc mockMvc;
@@ -71,7 +75,8 @@ class NoteListTest extends AbstractIntegrationTest {
                       "published": "2026-10-07T10:00:00Z",
                       "url": "https://jastodon.test/users/yue/statuses/0e1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b"
                     }
-                  ]
+                  ],
+                  "next": null
                 }
                 """));
     }
@@ -80,6 +85,40 @@ class NoteListTest extends AbstractIntegrationTest {
     void answersUnauthorizedToAnAnonymousRequest() throws Exception {
         mockMvc.perform(get("/notes"))
                 .andExpect(status().isUnauthorized())
+                .andExpect(content().string(""));
+    }
+
+    @Test
+    void followsNextToTheFollowingPage() throws Exception {
+        jdbcClient.sql("DELETE FROM notes").update();
+        for (int i = 0; i < 21; i++) {
+            noteRepository.save(new Note(
+                    new UUID(0, i),
+                    "note " + i,
+                    Instant.parse("2026-10-07T10:00:00Z").plusSeconds(i)));
+        }
+
+        mockMvc.perform(get("/notes")
+                .with(oauth2Login()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.notes.length()").value(20))
+                .andExpect(jsonPath("$.next").value(NEXT));
+
+        mockMvc.perform(get("/notes")
+                .param("cursor", NEXT)
+                .with(oauth2Login()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.notes.length()").value(1))
+                .andExpect(jsonPath("$.notes[0].id").value("00000000-0000-0000-0000-000000000000"))
+                .andExpect(jsonPath("$.next").value(nullValue()));
+    }
+
+    @Test
+    void rejectsAMalformedCursor() throws Exception {
+        mockMvc.perform(get("/notes")
+                .param("cursor", "!!!")
+                .with(oauth2Login()))
+                .andExpect(status().isBadRequest())
                 .andExpect(content().string(""));
     }
 }
