@@ -9,6 +9,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -148,5 +149,20 @@ class NoteRepositoryTest extends AbstractIntegrationTest {
         NoteCursor cursorOfADeletedNote = new NoteCursor(LATER, THIRD_ID);
 
         assertThat(noteRepository.findPageAfter(cursorOfADeletedNote, 2)).containsExactly(older);
+    }
+
+    @Test
+    void indexesNotesForKeysetPaging() {
+        Optional<String> definition = jdbcClient.sql("""
+                                                     SELECT indexdef
+                                                     FROM pg_indexes
+                                                     WHERE tablename = 'notes'
+                                                       AND indexname = 'notes_published_id_idx'
+                                                     """)
+                .query(String.class)
+                .optional();
+
+        assertThat(definition).contains(
+                "CREATE INDEX notes_published_id_idx ON public.notes USING btree (published DESC, id DESC)");
     }
 }
