@@ -30,4 +30,9 @@ class FederationPropertiesTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Note id must not be null");
     }
+
+    @Test
+    void acctIsTheUsernameAtTheHost() {
+        assertThat(properties.acct()).isEqualTo("yue@jastodon.test");
+    }
 }
