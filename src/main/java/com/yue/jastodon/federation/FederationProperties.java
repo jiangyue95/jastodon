@@ -25,6 +25,10 @@ public record FederationProperties(String username, URI baseUrl, Resource privat
         }
     }
 
+    public String acct() {
+        return username + "@" + baseUrl.getHost();
+    }
+
     public URI actorId() {
         return URI.create(baseUrl + "/users/" + username);
     }

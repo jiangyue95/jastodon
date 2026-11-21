@@ -42,11 +42,8 @@ public class WebFingerController {
             return ResponseEntity.notFound().build();
         }
 
-        String username = federationProperties.username();
-        URI baseUrl = federationProperties.baseUrl();
-
         Jrd jrd = new Jrd(
-                "acct:" + username + "@" + baseUrl.getHost(),
+                "acct:" + federationProperties.acct(),
                 List.of(new Jrd.Link("self", "application/activity+json",
                         federationProperties.actorId().toString()))
         );

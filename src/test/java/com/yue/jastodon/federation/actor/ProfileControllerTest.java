@@ -52,6 +52,8 @@ class ProfileControllerTest extends AbstractIntegrationTest {
 
         assertThat(jsonMapper.readTree(body)).isEqualTo(jsonMapper.readTree("""
                 {
+                  "username": "yue",
+                  "acct": "yue@jastodon.test",
                   "avatarUrl": "https://media.jastodon.test/avatars/9b2c3d4e-5f6a-4b7c-8d9e-0f1a2b3c4d5e.png"
                 }
                 """));
@@ -71,6 +73,8 @@ class ProfileControllerTest extends AbstractIntegrationTest {
 
         assertThat(jsonMapper.readTree(body)).isEqualTo(jsonMapper.readTree("""
                 {
+                  "username": "yue",
+                  "acct": "yue@jastodon.test",
                   "avatarUrl": null
                 }
                 """));
