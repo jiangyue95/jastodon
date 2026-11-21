@@ -21,9 +21,12 @@ class ProfileController {
     @GetMapping("/profile")
     ProfileResponse show() {
         URI avatarUrl = avatars.currentUrl(federationProperties.username()).orElse(null);
-        return new ProfileResponse(avatarUrl);
+        return new ProfileResponse(
+                federationProperties.username(),
+                federationProperties.acct(),
+                avatarUrl);
     }
 
-    record ProfileResponse(URI avatarUrl) {
+    record ProfileResponse(String username, String acct, URI avatarUrl) {
     }
 }
