@@ -73,7 +73,11 @@ class InboxIntegrationTest extends AbstractIntegrationTest {
         when(keyFetcher.fetch(REMOTE_KEY_ID))
                 .thenReturn(new RemoteKey(REMOTE_KEY_ID, REMOTE_ACTOR, REMOTE_KEY_PAIR.getPublic()));
         when(remoteActorFetcher.fetch(REMOTE_ACTOR))
-                .thenReturn(new RemoteActor(REMOTE_ACTOR, URI.create("https://remote.test/users/alice/inbox")));
+                .thenReturn(new RemoteActor(
+                        REMOTE_ACTOR,
+                        URI.create("https://remote.test/users/alice/inbox"),
+                        null,
+                        null));
     }
 
     @Test

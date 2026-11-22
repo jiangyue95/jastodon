@@ -23,6 +23,6 @@ public class RemoteActorFetcher {
             throw new RemoteFetchException("No inbox in " + actorId);
         }
 
-        return new RemoteActor(actorId, document.inbox());
+        return new RemoteActor(actorId, document.inbox(), document.displayName(), document.avatarUrl());
     }
 }
