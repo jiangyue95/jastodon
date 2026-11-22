@@ -9,11 +9,27 @@ import java.net.URI;
 record RemoteActorDocument(URI id, URI inbox, KeyDocument publicKey, JsonNode name, JsonNode icon) {
 
     String displayName() {
-        return null;
+        return name != null && name.isString() ? name.stringValue() : null;
     }
 
     URI avatarUrl() {
-        return null;
+        JsonNode image = icon != null && icon.isArray() ? icon.get(0) : icon;
+        if (image == null || !image.isObject()) {
+            return null;
+        }
+        JsonNode url = image.get("url");
+        if (url != null && url.isObject()) {
+            url = url.get("href");
+        }
+        if (url == null || !url.isString()) {
+            return null;
+        }
+        try {
+            URI uri = URI.create(url.stringValue());
+            return "https".equalsIgnoreCase(uri.getScheme()) && uri.getHost() != null ? uri : null;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
