@@ -40,7 +40,28 @@ class RemoteActorFetcherTest {
                 {"id": "%s", "type": "Person", "inbox": "%s"}
                 """.formatted(actor, inbox));
 
-        assertThat(fetcher().fetch(actor)).isEqualTo(new RemoteActor(actor, inbox));
+        assertThat(fetcher().fetch(actor)).isEqualTo(new RemoteActor(actor, inbox, null, null));
+    }
+
+    @Test
+    void fetchesTheActorsNameAndAvatar() {
+        URI actor = url("/users/alice");
+        URI inbox = url("/users/alice/inbox");
+        serve("/users/alice", """
+                {
+                  "id": "%s",
+                  "type": "Person",
+                  "inbox": "%s",
+                  "name": "Alice",
+                  "icon": {"type": "Image", "url": "https://files.remote.example/alice.png"}
+                }
+                """.formatted(actor, inbox));
+
+        assertThat(fetcher().fetch(actor)).isEqualTo(new RemoteActor(
+                actor,
+                inbox,
+                "Alice",
+                URI.create("https://files.remote.example/alice.png")));
     }
 
     @Test

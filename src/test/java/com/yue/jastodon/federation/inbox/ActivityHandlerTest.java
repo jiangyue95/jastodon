@@ -70,7 +70,7 @@ class ActivityHandlerTest extends AbstractIntegrationTest {
     void setUp() {
         jdbcClient.sql("DELETE FROM followers").update();
         jdbcClient.sql("DELETE FROM deliveries").update();
-        when(remoteActorFetcher.fetch(ALICE)).thenReturn(new RemoteActor(ALICE, ALICE_INBOX));
+        when(remoteActorFetcher.fetch(ALICE)).thenReturn(new RemoteActor(ALICE, ALICE_INBOX, null, null));
         when(clock.instant()).thenReturn(NOW);
     }
 
