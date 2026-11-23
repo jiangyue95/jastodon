@@ -53,6 +53,10 @@ public class ActivityPubClient {
         }
     }
 
+    public <T> T get(URI url, Class<T> type, MediaType... accept) {
+        return null;
+    }
+
     public HttpStatusCode post(URI inbox, byte[] body) {
         outboundUrlPolicy.check(inbox);
         SignatureHeaders headers = signer.sign(HttpMethod.POST, inbox, body);
