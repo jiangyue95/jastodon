@@ -24,7 +24,7 @@ class AcctTest {
 
     @Test
     void ignoresSurroundingWhitespace() {
-        assertThat(Acct.parse(" alice@mastodon.social "))
+        assertThat(Acct.parse("\u3000alice@mastodon.social "))
                 .contains(new Acct("alice", "mastodon.social"));
     }
 
