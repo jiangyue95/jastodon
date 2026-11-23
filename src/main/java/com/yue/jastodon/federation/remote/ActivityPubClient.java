@@ -32,6 +32,10 @@ public class ActivityPubClient {
     }
 
     public <T> T get(URI url, Class<T> type) {
+        return get(url, type, ACTIVITY_JSON, LD_JSON_ACTIVITYSTREAMS);
+    }
+
+    public <T> T get(URI url, Class<T> type, MediaType... accept) {
         try {
             outboundUrlPolicy.check(url);
         } catch (UnsafeRemoteUrlException e) {
@@ -41,20 +45,16 @@ public class ActivityPubClient {
         try {
             return restClient.get()
                     .uri(url)
-                    .accept(ACTIVITY_JSON, LD_JSON_ACTIVITYSTREAMS)
+                    .accept(accept)
                     .retrieve()
                     .onStatus(status -> !status.is2xxSuccessful(),
                             (request, response) -> {
-                        throw new RemoteFetchException("Unexpected status "
-                                + response.getStatusCode() + " from " + url);
-                    }).body(type);
+                                throw new RemoteFetchException("Unexpected status "
+                                        + response.getStatusCode() + " from " + url);
+                            }).body(type);
         } catch (RestClientException e) {
             throw new RemoteFetchException("Cannot fetch " + url, e);
         }
-    }
-
-    public <T> T get(URI url, Class<T> type, MediaType... accept) {
-        return null;
     }
 
     public HttpStatusCode post(URI inbox, byte[] body) {
