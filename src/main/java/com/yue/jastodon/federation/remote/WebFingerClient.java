@@ -21,7 +21,7 @@ public class WebFingerClient {
         this.activityPubClient = activityPubClient;
     }
 
-    public URI resolve(Acct acct) {
+    public WebFingerAccount resolve(Acct acct) {
         String resource = "acct:" + acct.value();
         URI url = URI.create("https://" + acct.host() + "/.well-known/webfinger?resource=" + resource);
         WebFingerDocument document = activityPubClient.get(
@@ -35,6 +35,7 @@ public class WebFingerClient {
         if (!resource.equalsIgnoreCase(document.subject())) {
             throw new RemoteFetchException("WebFinger subject " + document.subject() + " does not match " + resource);
         }
+        Acct confirmed = Acct.parse(document.subject().substring("acct:".length())).orElseThrow();
         List<WebFingerDocument.Link> links = document.links() == null ? List.of() : document.links();
         for (WebFingerDocument.Link link : links) {
             if (link != null
@@ -44,7 +45,7 @@ public class WebFingerClient {
                 if (link.href() == null) {
                     throw new RemoteFetchException("WebFinger self link for " + resource + " has no href");
                 }
-                return link.href();
+                return new WebFingerAccount(confirmed, link.href());
             }
         }
         throw new RemoteFetchException("WebFinger response for " + resource + " has no ActivityPub self link");
