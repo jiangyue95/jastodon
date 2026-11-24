@@ -22,6 +22,7 @@ import java.security.KeyPair;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -111,6 +112,36 @@ class ActivityPubClientTest {
         assertThat(body).isEqualTo("{\"subject\": \"acct:alice@remote.test\"}");
         assertThat(lastMethod).isEqualTo("GET");
         assertThat(lastHeaders.getFirst("Accept")).isEqualTo("application/jrd+json, application/json");
+    }
+
+    @Test
+    void getReadsAWebFingerDocumentFromAJrdResponse() {
+        serveJson("/.well-known/webfinger", """
+                {
+                  "subject": "acct:alice@remote.test",
+                  "aliases": ["https://remote.test/@alice"],
+                  "links": [
+                    {
+                      "rel": "self",
+                      "type": "application/activity+json",
+                      "href": "https://remote.test/users/alice"
+                    }
+                  ]
+                }
+                """);
+
+        WebFingerDocument document = client(uri -> {}).get(
+                url("/.well-known/webfinger"),
+                WebFingerDocument.class,
+                MediaType.parseMediaType("application/jrd+json"),
+                MediaType.APPLICATION_JSON);
+
+        assertThat(document).isEqualTo(new WebFingerDocument(
+                "acct:alice@remote.test",
+                List.of(new WebFingerDocument.Link(
+                        "self",
+                        "application/activity+json",
+                        URI.create("https://remote.test/users/alice")))));
     }
 
     private void respondWith(int status) {
