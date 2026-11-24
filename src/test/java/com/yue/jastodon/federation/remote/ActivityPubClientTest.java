@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -21,6 +22,7 @@ import java.security.KeyPair;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -97,6 +99,51 @@ class ActivityPubClientTest {
                 .hasMessageContaining("Cannot deliver");
     }
 
+    @Test
+    void getSendsTheGivenAcceptTypes() {
+        serveJson("/.well-known/webfinger", "{\"subject\": \"acct:alice@remote.test\"}");
+
+        String body = client(uri -> {}).get(
+                url("/.well-known/webfinger"),
+                String.class,
+                MediaType.parseMediaType("application/jrd+json"),
+                MediaType.APPLICATION_JSON);
+
+        assertThat(body).isEqualTo("{\"subject\": \"acct:alice@remote.test\"}");
+        assertThat(lastMethod).isEqualTo("GET");
+        assertThat(lastHeaders.getFirst("Accept")).isEqualTo("application/jrd+json, application/json");
+    }
+
+    @Test
+    void getReadsAWebFingerDocumentFromAJrdResponse() {
+        serveJson("/.well-known/webfinger", """
+                {
+                  "subject": "acct:alice@remote.test",
+                  "aliases": ["https://remote.test/@alice"],
+                  "links": [
+                    {
+                      "rel": "self",
+                      "type": "application/activity+json",
+                      "href": "https://remote.test/users/alice"
+                    }
+                  ]
+                }
+                """);
+
+        WebFingerDocument document = client(uri -> {}).get(
+                url("/.well-known/webfinger"),
+                WebFingerDocument.class,
+                MediaType.parseMediaType("application/jrd+json"),
+                MediaType.APPLICATION_JSON);
+
+        assertThat(document).isEqualTo(new WebFingerDocument(
+                "acct:alice@remote.test",
+                List.of(new WebFingerDocument.Link(
+                        "self",
+                        "application/activity+json",
+                        URI.create("https://remote.test/users/alice")))));
+    }
+
     private void respondWith(int status) {
         server.createContext("/inbox", exchange -> {
             requestCount.incrementAndGet();
@@ -110,6 +157,23 @@ class ActivityPubClientTest {
 
     private URI inbox() {
         return URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/inbox");
+    }
+
+    private void serveJson(String path, String json) {
+        server.createContext(path, exchange -> {
+            requestCount.incrementAndGet();
+            lastMethod = exchange.getRequestMethod();
+            lastHeaders = exchange.getRequestHeaders();
+            byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/jrd+json");
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes);
+            exchange.close();
+        });
+    }
+
+    private URI url(String path) {
+        return URI.create("http://127.0.0.1:" + server.getAddress().getPort() + path);
     }
 
     private static ActivityPubClient client(OutboundUrlPolicy policy) {
