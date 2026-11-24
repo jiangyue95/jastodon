@@ -1,11 +1,16 @@
 package com.yue.jastodon.federation.following;
 
 import com.yue.jastodon.federation.remote.Acct;
+import com.yue.jastodon.federation.remote.RemoteActor;
 import com.yue.jastodon.federation.remote.RemoteActorFetcher;
+import com.yue.jastodon.federation.remote.RemoteFetchException;
+import com.yue.jastodon.federation.remote.WebFingerAccount;
 import com.yue.jastodon.federation.remote.WebFingerClient;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Service
 class AccountLookupService {
@@ -27,6 +32,15 @@ class AccountLookupService {
     }
 
     RemoteAccount lookup(Acct acct) {
-        return null;
+        WebFingerAccount found = webFingerClient.resolve(acct);
+        String handle = found.acct().value();
+        if (!found.acct().host().equalsIgnoreCase(found.actorId().getHost())) {
+            throw new RemoteFetchException(
+                    "WebFinger for " + handle + " points to an actor on another host: " + found.actorId());
+        }
+        RemoteActor actor = remoteActorFetcher.fetch(found.actorId());
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        long id = remoteAccountRepository.save(actor.id(), handle, actor.inbox(), actor.name(), actor.avatarUrl(), now);
+        return new RemoteAccount(id, actor.id(), handle, actor.inbox(), actor.name(), actor.avatarUrl(), now);
     }
 }
