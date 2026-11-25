@@ -29,7 +29,7 @@ class WebFingerClientTest {
                 "acct:alice@mastodon.social",
                 List.of(new WebFingerDocument.Link("self", "application/activity+json", ALICE))));
 
-        assertThat(webFingerClient.resolve(ALICE_ACCT)).isEqualTo(ALICE);
+        assertThat(webFingerClient.resolve(ALICE_ACCT)).isEqualTo(new WebFingerAccount(ALICE_ACCT, ALICE));
     }
 
     @Test
@@ -47,7 +47,7 @@ class WebFingerClientTest {
                 )
         ));
 
-        assertThat(webFingerClient.resolve(ALICE_ACCT)).isEqualTo(ALICE);
+        assertThat(webFingerClient.resolve(ALICE_ACCT)).isEqualTo(new WebFingerAccount(ALICE_ACCT, ALICE));
     }
 
     @Test
@@ -69,16 +69,17 @@ class WebFingerClientTest {
                         "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\"",
                         ALICE))));
 
-        assertThat(webFingerClient.resolve(ALICE_ACCT)).isEqualTo(ALICE);
+        assertThat(webFingerClient.resolve(ALICE_ACCT)).isEqualTo(new WebFingerAccount(ALICE_ACCT, ALICE));
     }
 
     @Test
-    void acceptsASubjectThatDiffersOnlyInCase() {
+    void usesTheSubjectsSpellingOfTheHandle() {
         respondWith(new WebFingerDocument(
                 "acct:Alice@Mastodon.Social",
                 List.of(selfLink(ACTIVITY_JSON, ALICE))));
 
-        assertThat(webFingerClient.resolve(ALICE_ACCT)).isEqualTo(ALICE);
+        assertThat(webFingerClient.resolve(ALICE_ACCT))
+                .isEqualTo(new WebFingerAccount(new Acct("Alice", "mastodon.social"), ALICE));
     }
 
     @Test
@@ -87,7 +88,7 @@ class WebFingerClientTest {
                 "acct:alice@mastodon.social",
                 Arrays.asList(null, selfLink(ACTIVITY_JSON, ALICE))));
 
-        assertThat(webFingerClient.resolve(ALICE_ACCT)).isEqualTo(ALICE);
+        assertThat(webFingerClient.resolve(ALICE_ACCT)).isEqualTo(new WebFingerAccount(ALICE_ACCT, ALICE));
     }
 
     @Test
