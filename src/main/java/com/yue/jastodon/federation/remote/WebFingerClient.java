@@ -24,7 +24,7 @@ public class WebFingerClient {
     public WebFingerAccount resolve(Acct acct) {
         String resource = "acct:" + acct.value();
         URI url = URI.create("https://" + acct.host() + "/.well-known/webfinger?resource=" + resource);
-        WebFingerDocument document = activityPubClient.get(
+        WebFingerDocument document = activityPubClient.getUnsigned(
                 url,
                 WebFingerDocument.class,
                 JRD_JSON,

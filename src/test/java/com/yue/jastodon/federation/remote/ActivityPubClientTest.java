@@ -19,9 +19,11 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
+import java.security.Signature;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -103,7 +105,7 @@ class ActivityPubClientTest {
     void getSendsTheGivenAcceptTypes() {
         serveJson("/.well-known/webfinger", "{\"subject\": \"acct:alice@remote.test\"}");
 
-        String body = client(uri -> {}).get(
+        String body = client(uri -> {}).getUnsigned(
                 url("/.well-known/webfinger"),
                 String.class,
                 MediaType.parseMediaType("application/jrd+json"),
@@ -130,7 +132,7 @@ class ActivityPubClientTest {
                 }
                 """);
 
-        WebFingerDocument document = client(uri -> {}).get(
+        WebFingerDocument document = client(uri -> {}).getUnsigned(
                 url("/.well-known/webfinger"),
                 WebFingerDocument.class,
                 MediaType.parseMediaType("application/jrd+json"),
@@ -142,6 +144,41 @@ class ActivityPubClientTest {
                         "self",
                         "application/activity+json",
                         URI.create("https://remote.test/users/alice")))));
+    }
+
+    @Test
+    void getSignsTheRequest() throws Exception {
+        serveJson("/users/alice", "{\"id\": \"https://remote.test/users/alice\"}");
+        client(uri -> {}).get(url("/users/alice"), String.class);
+
+        assertThat(lastHeaders.getFirst("Date")).isEqualTo("Wed, 07 Oct 2026 10:00:00 GMT");
+        assertThat(lastHeaders.getFirst("Host")).isEqualTo("127.0.0.1:" + server.getAddress().getPort());
+        assertThat(lastHeaders.getFirst("Signature")).startsWith(
+                "keyId=\"https://jastodon.test/users/yue#main-key\","
+                + "algorithm=\"rsa-sha256\","
+                + "headers=\"(request-target) host date\","
+                + "signature=\"");
+        assertThat(lastHeaders.getFirst("Digest")).isNull();
+
+        String signatureValue = lastHeaders.getFirst("Signature")
+                .replaceAll(".*signature=\"([^\"]+)\".*", "$1");
+        String expectedSigningString = "(request-target): get /users/alice\n"
+                + "host: 127.0.0.1:" + server.getAddress().getPort() + "\n"
+                + "date: Wed, 07 Oct 2026 10:00:00 GMT";
+
+        Signature verifier = Signature.getInstance("SHA256withRSA");
+        verifier.initVerify(KEY_PAIR.getPublic());
+        verifier.update(expectedSigningString.getBytes(StandardCharsets.UTF_8));
+
+        assertThat(verifier.verify(Base64.getDecoder().decode(signatureValue))).isTrue();
+    }
+
+    @Test
+    void getUnsignedSendsNoSignature() {
+        serveJson("/users/alice", "{\"id\": \"https://remote.test/users/alice\"}");
+        client(uri -> {}).getUnsigned(url("/users/alice"), String.class, MediaType.APPLICATION_JSON);
+
+        assertThat(lastHeaders.getFirst("Signature")).isNull();
     }
 
     private void respondWith(int status) {

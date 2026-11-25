@@ -2,6 +2,7 @@ package com.yue.jastodon.federation.remote;
 
 import com.sun.net.httpserver.HttpServer;
 import com.yue.jastodon.TestKeys;
+import com.yue.jastodon.federation.signature.GetSignatureHeaders;
 import com.yue.jastodon.federation.signature.HttpSignatureSigner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +21,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class RemoteActorKeyFetcherTest {
 
@@ -92,10 +95,10 @@ class RemoteActorKeyFetcherTest {
                 actorJson(keyId, actor, TestKeys.toPem(KEY_PAIR.getPublic())));
         RemoteActorKeyFetcher fetcher = new RemoteActorKeyFetcher(
                 new ActivityPubClient(new FederationClientConfiguration().federationRestClient(),
-                uri -> {
-                    throw new UnsafeRemoteUrlException("blocked by test policy");
-                },
-                        mock(HttpSignatureSigner.class)));
+                        uri -> {
+                            throw new UnsafeRemoteUrlException("blocked by test policy");
+                        },
+                        signer()));
 
         assertThatThrownBy(() -> fetcher.fetch(keyId))
                 .isInstanceOf(RemoteFetchException.class)
@@ -190,6 +193,13 @@ class RemoteActorKeyFetcherTest {
         return new RemoteActorKeyFetcher(new ActivityPubClient(
                 new FederationClientConfiguration().federationRestClient(),
                 uri -> {},
-                mock(HttpSignatureSigner.class)));
+                signer()));
+    }
+
+    private static HttpSignatureSigner signer() {
+        HttpSignatureSigner signer = mock(HttpSignatureSigner.class);
+        when(signer.signGet(any())).thenReturn(
+                new GetSignatureHeaders("Wed, 07 Oct 2026 10:00:00 GMT", "test-signature"));
+        return signer;
     }
 }

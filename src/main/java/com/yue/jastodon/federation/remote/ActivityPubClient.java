@@ -1,7 +1,9 @@
 package com.yue.jastodon.federation.remote;
 
+import com.yue.jastodon.federation.signature.GetSignatureHeaders;
 import com.yue.jastodon.federation.signature.HttpSignatureSigner;
 import com.yue.jastodon.federation.signature.SignatureHeaders;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -10,6 +12,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.net.URI;
+import java.util.function.Consumer;
 
 @Component
 public class ActivityPubClient {
@@ -32,29 +35,17 @@ public class ActivityPubClient {
     }
 
     public <T> T get(URI url, Class<T> type) {
-        return get(url, type, ACTIVITY_JSON, LD_JSON_ACTIVITYSTREAMS);
+        checkUrl(url);
+        GetSignatureHeaders signature = signer.signGet(url);
+        return fetch(url, type, headers -> {
+            headers.set("Date", signature.date());
+            headers.set("Signature", signature.signature());
+        }, ACTIVITY_JSON, LD_JSON_ACTIVITYSTREAMS);
     }
 
-    public <T> T get(URI url, Class<T> type, MediaType... accept) {
-        try {
-            outboundUrlPolicy.check(url);
-        } catch (UnsafeRemoteUrlException e) {
-            throw new RemoteFetchException("Refusing to fetch " + url + ": " + e.getMessage());
-        }
-
-        try {
-            return restClient.get()
-                    .uri(url)
-                    .accept(accept)
-                    .retrieve()
-                    .onStatus(status -> !status.is2xxSuccessful(),
-                            (request, response) -> {
-                                throw new RemoteFetchException("Unexpected status "
-                                        + response.getStatusCode() + " from " + url);
-                            }).body(type);
-        } catch (RestClientException e) {
-            throw new RemoteFetchException("Cannot fetch " + url, e);
-        }
+    public <T> T getUnsigned(URI url, Class<T> type, MediaType... accept) {
+        checkUrl(url);
+        return fetch(url, type, headers -> {}, accept);
     }
 
     public HttpStatusCode post(URI inbox, byte[] body) {
@@ -72,6 +63,31 @@ public class ActivityPubClient {
                     .exchange((request, response) -> response.getStatusCode());
         } catch (RestClientException e) {
             throw new RemoteFetchException("Cannot deliver to " + inbox, e);
+        }
+    }
+
+    private void checkUrl(URI url) {
+        try {
+            outboundUrlPolicy.check(url);
+        } catch (UnsafeRemoteUrlException e) {
+            throw new RemoteFetchException("Refusing to fetch " + url + ": " + e.getMessage());
+        }
+    }
+
+    private <T> T fetch(URI url, Class<T> type, Consumer<HttpHeaders> extraHeaders, MediaType... accept) {
+        try {
+            return restClient.get()
+                    .uri(url)
+                    .accept(accept)
+                    .headers(extraHeaders)
+                    .retrieve()
+                    .onStatus(status -> !status.is2xxSuccessful(),
+                            (request, response) -> {
+                                throw new RemoteFetchException("Unexpected status "
+                                        + response.getStatusCode() + " from " + url);
+                            }).body(type);
+        } catch (RestClientException e) {
+            throw new RemoteFetchException("Cannot fetch " + url, e);
         }
     }
 }
