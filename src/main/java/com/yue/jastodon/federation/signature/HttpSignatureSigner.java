@@ -45,6 +45,10 @@ public class HttpSignatureSigner {
         return new SignatureHeaders(date, digest, signature);
     }
 
+    public GetSignatureHeaders signGet(URI target) {
+        return new GetSignatureHeaders(null, null);
+    }
+
     static String signingString(HttpMethod method, URI target, String date, String digest) {
         return String.join("\n",
                 "(request-target): " + method.name().toLowerCase(Locale.ROOT) + " " + requestTarget(target),

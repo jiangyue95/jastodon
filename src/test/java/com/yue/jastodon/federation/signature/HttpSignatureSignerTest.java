@@ -37,6 +37,55 @@ class HttpSignatureSignerTest {
     }
 
     @Test
+    void signedGetFormatsTheDate() {
+        GetSignatureHeaders headers = signer.signGet(URI.create("https://mastodon.example/users/alice"));
+
+        assertThat(headers.date()).isEqualTo("Wed, 07 Oct 2026 10:00:00 GMT");
+    }
+
+    @Test
+    void signedGetSignsRequestTargetHostAndDate() throws Exception {
+        GetSignatureHeaders headers = signer.signGet(URI.create("https://mastodon.example/users/alice"));
+
+        assertThat(headers.signature()).startsWith(
+                "keyId=\"https://jastodon.test/users/yue#main-key\","
+                        + "algorithm=\"rsa-sha256\","
+                        + "headers=\"(request-target) host date\","
+                        + "signature=\"");
+
+        String signatureValue = headers.signature().replaceAll(".*signature=\"([^\"]+)\".*", "$1");
+        String expectedSigningString = "(request-target): get /users/alice\n"
+                + "host: mastodon.example\n"
+                + "date: Wed, 07 Oct 2026 10:00:00 GMT";
+        Signature verifier = Signature.getInstance("SHA256withRSA");
+        verifier.initVerify(KEY_PAIR.getPublic());
+        verifier.update(expectedSigningString.getBytes(StandardCharsets.UTF_8));
+
+        assertThat(verifier.verify(Base64.getDecoder().decode(signatureValue))).isTrue();
+    }
+
+    @Test
+    void signedGetIncludesQueryAndExplicitPort() throws Exception {
+        GetSignatureHeaders headers = signer.signGet(URI.create("http://localhost:8080/users/alice?page=1"));
+
+        assertThat(headers.signature()).startsWith(
+                "keyId=\"https://jastodon.test/users/yue#main-key\","
+                        + "algorithm=\"rsa-sha256\","
+                        + "headers=\"(request-target) host date\","
+                        + "signature=\"");
+
+        String signatureValue = headers.signature().replaceAll(".*signature=\"([^\"]+)\".*", "$1");
+        String expectedSigningString = "(request-target): get /users/alice?page=1\n"
+                + "host: localhost:8080\n"
+                + "date: Wed, 07 Oct 2026 10:00:00 GMT";
+        Signature verifier = Signature.getInstance("SHA256withRSA");
+        verifier.initVerify(KEY_PAIR.getPublic());
+        verifier.update(expectedSigningString.getBytes(StandardCharsets.UTF_8));
+
+        assertThat(verifier.verify(Base64.getDecoder().decode(signatureValue))).isTrue();
+    }
+
+    @Test
     void computesSha256DigestOfBody() {
         byte[] body = "{\"type\":\"Accept\"}".getBytes(StandardCharsets.UTF_8);
         SignatureHeaders headers = signer.sign(HttpMethod.POST, URI.create("https://example.test/inbox"), body);
