@@ -1,6 +1,7 @@
 package com.yue.jastodon.federation.remote;
 
 import com.sun.net.httpserver.HttpServer;
+import com.yue.jastodon.federation.signature.GetSignatureHeaders;
 import com.yue.jastodon.federation.signature.HttpSignatureSigner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +16,9 @@ import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class RemoteActorFetcherTest {
 
@@ -109,6 +112,13 @@ class RemoteActorFetcherTest {
         return new RemoteActorFetcher(new ActivityPubClient(
                 new FederationClientConfiguration().federationRestClient(),
                 uri -> {},
-                mock(HttpSignatureSigner.class)));
+                signer()));
+    }
+
+    private static HttpSignatureSigner signer() {
+        HttpSignatureSigner signer = mock(HttpSignatureSigner.class);
+        when(signer.signGet(any())).thenReturn(
+                new GetSignatureHeaders("Wed, 07 Oct 2026 10:00:00 GMT", "test-signature"));
+        return signer;
     }
 }
