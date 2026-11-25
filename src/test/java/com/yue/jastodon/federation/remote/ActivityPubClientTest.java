@@ -103,7 +103,7 @@ class ActivityPubClientTest {
     void getSendsTheGivenAcceptTypes() {
         serveJson("/.well-known/webfinger", "{\"subject\": \"acct:alice@remote.test\"}");
 
-        String body = client(uri -> {}).get(
+        String body = client(uri -> {}).getUnsigned(
                 url("/.well-known/webfinger"),
                 String.class,
                 MediaType.parseMediaType("application/jrd+json"),
@@ -130,7 +130,7 @@ class ActivityPubClientTest {
                 }
                 """);
 
-        WebFingerDocument document = client(uri -> {}).get(
+        WebFingerDocument document = client(uri -> {}).getUnsigned(
                 url("/.well-known/webfinger"),
                 WebFingerDocument.class,
                 MediaType.parseMediaType("application/jrd+json"),

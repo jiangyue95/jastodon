@@ -150,7 +150,7 @@ class WebFingerClientTest {
     @Test
     void passesOnAFetchFailure() {
         RemoteFetchException failure = new RemoteFetchException("Cannot fetch " + WEBFINGER_URL);
-        when(activityPubClient.get(
+        when(activityPubClient.getUnsigned(
                 WEBFINGER_URL,
                 WebFingerDocument.class,
                 MediaType.parseMediaType("application/jrd+json"),
@@ -162,7 +162,7 @@ class WebFingerClientTest {
     }
 
     private void respondWith(WebFingerDocument document) {
-        when(activityPubClient.get(
+        when(activityPubClient.getUnsigned(
                 WEBFINGER_URL,
                 WebFingerDocument.class,
                 MediaType.parseMediaType("application/jrd+json"),

@@ -32,10 +32,10 @@ public class ActivityPubClient {
     }
 
     public <T> T get(URI url, Class<T> type) {
-        return get(url, type, ACTIVITY_JSON, LD_JSON_ACTIVITYSTREAMS);
+        return getUnsigned(url, type, ACTIVITY_JSON, LD_JSON_ACTIVITYSTREAMS);
     }
 
-    public <T> T get(URI url, Class<T> type, MediaType... accept) {
+    public <T> T getUnsigned(URI url, Class<T> type, MediaType... accept) {
         try {
             outboundUrlPolicy.check(url);
         } catch (UnsafeRemoteUrlException e) {
