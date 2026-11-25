@@ -21,7 +21,8 @@ public class HttpSignatureSigner {
     private static final DateTimeFormatter HTTP_DATE =
             DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.ENGLISH)
                     .withZone(ZoneOffset.UTC);
-    private static final String SIGNED_HEADERS = "(request-target) host date digest";
+    private static final String POST_SIGNED_HEADERS = "(request-target) host date digest";
+    private static final String GET_SIGNED_HEADERS = "(request-target) host date";
 
     private final ActorKeys actorKeys;
     private final FederationProperties federationProperties;
@@ -37,16 +38,17 @@ public class HttpSignatureSigner {
         String date = HTTP_DATE.format(clock.instant());
         String digest = "SHA-256=" + Base64.getEncoder().encodeToString(sha256(body));
         String signingString = signingString(method, target, date, digest);
-        byte[] signatureBytes = actorKeys.sign(signingString.getBytes(StandardCharsets.UTF_8));
-        String signature = "keyId=\"" + federationProperties.keyId() + "\","
-                + "algorithm=\"rsa-sha256\","
-                + "headers=\"" + SIGNED_HEADERS + "\","
-                + "signature=\"" + Base64.getEncoder().encodeToString(signatureBytes) + "\"";
+        String signature = signatureHeader(POST_SIGNED_HEADERS, signingString);
         return new SignatureHeaders(date, digest, signature);
     }
 
     public GetSignatureHeaders signGet(URI target) {
-        return new GetSignatureHeaders(null, null);
+        String date = HTTP_DATE.format(clock.instant());
+        String signingString = String.join("\n",
+                "(request-target): get " + requestTarget(target),
+                "host: " + host(target),
+                "date: " + date);
+        return new GetSignatureHeaders(date, signatureHeader(GET_SIGNED_HEADERS, signingString));
     }
 
     static String signingString(HttpMethod method, URI target, String date, String digest) {
@@ -55,6 +57,14 @@ public class HttpSignatureSigner {
                 "host: " + host(target),
                 "date: " + date,
                 "digest: " + digest);
+    }
+
+    private String signatureHeader(String signedHeaders, String signingString) {
+        byte[] signatureBytes = actorKeys.sign(signingString.getBytes(StandardCharsets.UTF_8));
+        return "keyId=\"" + federationProperties.keyId() + "\","
+                + "algorithm=\"rsa-sha256\","
+                + "headers=\"" + signedHeaders + "\","
+                + "signature=\"" + Base64.getEncoder().encodeToString(signatureBytes) + "\"";
     }
 
     private static String requestTarget(URI target) {
