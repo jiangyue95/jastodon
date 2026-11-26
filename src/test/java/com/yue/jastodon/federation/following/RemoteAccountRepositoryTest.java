@@ -19,6 +19,7 @@ class RemoteAccountRepositoryTest extends AbstractIntegrationTest {
     private static final URI ALICE_INBOX = URI.create("https://mastodon.example/users/alice/inbox");
     private static final URI ALICE_AVATAR = URI.create("https://mastodon.example/avatars/alice.png");
     private static final URI BOB = URI.create("https://mastodon.example/users/bob");
+    private static final URI BOB_INBOX = URI.create("https://mastodon.example/users/bob/inbox");
     private static final Instant FETCHED = Instant.parse("2026-10-07T10:00:00Z");
     private static final Instant REFETCHED = Instant.parse("2026-10-08T10:00:00Z");
 
@@ -116,5 +117,45 @@ class RemoteAccountRepositoryTest extends AbstractIntegrationTest {
                 FETCHED);
 
         assertThat(remoteAccountRepository.findByActorId(ALICE)).isEmpty();
+    }
+
+    @Test
+    void findsAnAccountById() {
+        remoteAccountRepository.save(
+                ALICE,
+                "alice@mastodon.example",
+                ALICE_INBOX,
+                null,
+                null,
+                FETCHED);
+        long bobId = remoteAccountRepository.save(
+                BOB,
+                "bob@mastodon.example",
+                BOB_INBOX,
+                null,
+                null,
+                FETCHED);
+
+        assertThat(remoteAccountRepository.findById(bobId)).contains(new RemoteAccount(
+                bobId,
+                BOB,
+                "bob@mastodon.example",
+                BOB_INBOX,
+                null,
+                null,
+                FETCHED));
+    }
+
+    @Test
+    void findsNothingForAnUnknownId() {
+        long aliceId = remoteAccountRepository.save(
+                ALICE,
+                "alice@mastodon.example",
+                ALICE_INBOX,
+                null,
+                null,
+                FETCHED);
+
+        assertThat(remoteAccountRepository.findById(aliceId + 1000)).isEmpty();
     }
 }

@@ -20,18 +20,19 @@ class FollowRepository {
         this.jdbcClient = jdbcClient;
     }
 
-    long saveRequest(long remoteAccountId, URI followActivityId, Instant requestedAt) {
+    Optional<Long> saveRequest(long remoteAccountId, URI followActivityId, Instant requestedAt) {
         return jdbcClient.sql("""
-                       INSERT INTO follows (remote_account_id, follow_activity_id, state, requested_at)
-                       VALUES (:remoteAccountId, :followActivityId, :state, :requestedAt)
-                       RETURNING id
-                       """)
+                        INSERT INTO follows (remote_account_id, follow_activity_id, state, requested_at)
+                        VALUES (:remoteAccountId, :followActivityId, :state, :requestedAt)
+                        ON CONFLICT (remote_account_id) DO NOTHING
+                        RETURNING id
+                        """)
                 .param("remoteAccountId", remoteAccountId)
                 .param("followActivityId", followActivityId.toString())
                 .param("state", FollowState.PENDING.name())
                 .param("requestedAt", requestedAt.atOffset(ZoneOffset.UTC))
                 .query(Long.class)
-                .single();
+                .optional();
     }
 
     Optional<Follow> findByRemoteAccountId(long remoteAccountId) {

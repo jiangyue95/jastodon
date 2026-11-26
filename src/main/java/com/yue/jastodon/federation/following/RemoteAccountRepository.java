@@ -53,6 +53,17 @@ class RemoteAccountRepository {
                 .optional();
     }
 
+    Optional<RemoteAccount> findById(long id) {
+        return jdbcClient.sql("""
+                              SELECT id, actor_id, acct, inbox, name, avatar_url, fetched_at
+                              FROM remote_accounts
+                              WHERE id = :id
+                              """)
+                .param("id", id)
+                .query(RemoteAccountRepository::mapRow)
+                .optional();
+    }
+
     private static RemoteAccount mapRow(ResultSet rs, int rowNum) throws SQLException {
         String avatarUrl = rs.getString("avatar_url");
         return new RemoteAccount(
