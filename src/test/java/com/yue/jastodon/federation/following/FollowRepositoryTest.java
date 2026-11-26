@@ -26,6 +26,7 @@ class FollowRepositoryTest extends AbstractIntegrationTest {
     private static final URI FOLLOW_ID = URI.create("https://jastodon.test/activities/follow-1");
     private static final Instant FETCHED = Instant.parse("2026-10-07T09:00:00Z");
     private static final Instant REQUESTED = Instant.parse("2026-10-07T10:00:00Z");
+    private static final Instant LATER_REQUESTED = Instant.parse("2026-10-07T10:01:00Z");
     private static final Instant ACCEPTED = Instant.parse("2026-10-07T10:05:00Z");
 
     @Autowired
@@ -52,7 +53,7 @@ class FollowRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void savesAndFindsAPendingRequest() {
-        long id = followRepository.saveRequest(aliceId, FOLLOW_ID, REQUESTED);
+        long id = followRepository.saveRequest(aliceId, FOLLOW_ID, REQUESTED).orElseThrow();
 
         assertThat(followRepository.findByRemoteAccountId(aliceId)).contains(new Follow(
                 id,
@@ -71,13 +72,18 @@ class FollowRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void rejectsASecondRequestForTheSameAccount() {
-        followRepository.saveRequest(aliceId, FOLLOW_ID, REQUESTED);
+    void keepsTheFirstRequestForTheSameAccount() {
+        long id = followRepository.saveRequest(aliceId, FOLLOW_ID, REQUESTED).orElseThrow();
 
-        assertThatThrownBy(() -> followRepository.saveRequest(
-                aliceId, URI.create("https://jastodon.test/activities/follow-2"), REQUESTED))
-                .isInstanceOf(DuplicateKeyException.class)
-                .hasMessageContaining("follows_remote_account_id_key");
+        assertThat(followRepository.saveRequest(
+                aliceId, URI.create("https://jastodon.test/activities/follow-2"), LATER_REQUESTED)).isEmpty();
+        assertThat(followRepository.findByRemoteAccountId(aliceId)).contains(new Follow(
+                id,
+                aliceId,
+                FOLLOW_ID,
+                FollowState.PENDING,
+                REQUESTED,
+                null));
     }
 
     @Test
