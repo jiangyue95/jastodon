@@ -53,6 +53,10 @@ class RemoteAccountRepository {
                 .optional();
     }
 
+    Optional<RemoteAccount> findById(long id) {
+        return Optional.empty();
+    }
+
     private static RemoteAccount mapRow(ResultSet rs, int rowNum) throws SQLException {
         String avatarUrl = rs.getString("avatar_url");
         return new RemoteAccount(
