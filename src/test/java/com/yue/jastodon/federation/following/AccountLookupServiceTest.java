@@ -50,6 +50,7 @@ class AccountLookupServiceTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        jdbcClient.sql("DELETE FROM follows").update();
         jdbcClient.sql("DELETE FROM remote_accounts").update();
         accountLookupService = new AccountLookupService(
                 webFingerClient, remoteActorFetcher, remoteAccountRepository, CLOCK);
