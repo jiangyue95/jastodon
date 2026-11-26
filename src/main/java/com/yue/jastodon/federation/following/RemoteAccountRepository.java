@@ -54,7 +54,14 @@ class RemoteAccountRepository {
     }
 
     Optional<RemoteAccount> findById(long id) {
-        return Optional.empty();
+        return jdbcClient.sql("""
+                              SELECT id, actor_id, acct, inbox, name, avatar_url, fetched_at
+                              FROM remote_accounts
+                              WHERE id = :id
+                              """)
+                .param("id", id)
+                .query(RemoteAccountRepository::mapRow)
+                .optional();
     }
 
     private static RemoteAccount mapRow(ResultSet rs, int rowNum) throws SQLException {
