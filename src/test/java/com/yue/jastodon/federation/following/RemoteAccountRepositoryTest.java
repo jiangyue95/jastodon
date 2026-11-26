@@ -30,6 +30,7 @@ class RemoteAccountRepositoryTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void emptyTable() {
+        jdbcClient.sql("DELETE FROM follows").update();
         jdbcClient.sql("DELETE FROM remote_accounts").update();
     }
 
