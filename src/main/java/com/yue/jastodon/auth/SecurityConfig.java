@@ -67,7 +67,8 @@ public class SecurityConfig {
                                 PathPatternRequestMatcher.pathPattern("/notes"),
                                 PathPatternRequestMatcher.pathPattern("/profile"),
                                 PathPatternRequestMatcher.pathPattern("/profile/avatar"),
-                                PathPatternRequestMatcher.pathPattern("/accounts/lookup")))
+                                PathPatternRequestMatcher.pathPattern("/accounts/lookup"),
+                                PathPatternRequestMatcher.pathPattern("/following/*")))
                 .defaultEntryPoint(new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/github"))
                 .build();
     }
