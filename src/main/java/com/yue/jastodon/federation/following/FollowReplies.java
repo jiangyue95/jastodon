@@ -4,6 +4,8 @@ import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.time.Clock;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Component
 public class FollowReplies {
@@ -17,10 +19,11 @@ public class FollowReplies {
     }
 
     public boolean accept(URI actorId, URI followActivityId) {
-        return false;
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
+        return followRepository.markAccepted(actorId, followActivityId, now);
     }
 
     public boolean reject(URI actorId, URI followActivityId) {
-        return false;
+        return followRepository.remove(actorId, followActivityId);
     }
 }
